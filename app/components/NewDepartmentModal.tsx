@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 type Departamento = {
+  id?: string;
   numero: string;
   tipo: string;
   residentes: string[];
@@ -51,12 +52,11 @@ export default function NewDepartmentModal({
       .filter((residente) => residente !== "");
 
     onSave({
+      id: departamentoEditar?.id,
       numero,
       tipo,
       residentes,
     });
-
-    onClose();
   };
 
   return (
