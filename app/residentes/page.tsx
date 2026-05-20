@@ -1,5 +1,5 @@
 "use client";
-
+import Header from "../components/Header";
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import StatsCard from "../components/StatsCard";
@@ -173,22 +173,7 @@ export default function ResidentesPage() {
         <Sidebar />
 
         <section className="flex-1">
-          <header className="flex items-center justify-between border-b border-slate-200 bg-white px-8 py-5">
-            <div>
-              <h2 className="text-xl font-bold">Conserjería</h2>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="font-semibold">Giovanny Troncoso</p>
-                <p className="text-sm text-slate-500">Conserje en turno</p>
-              </div>
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#061A33] text-white">
-                G
-              </div>
-            </div>
-          </header>
+          <Header />
 
           <div className="p-8">
             <div className="mb-6 flex items-center justify-between">

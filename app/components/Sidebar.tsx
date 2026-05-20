@@ -1,12 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const edificio = {
-  nombre: "Edificio Los Alerces",
-  direccion: "Av. Alemania 1234, Temuco",
-};
 
 const menuItems = [
   {
@@ -25,18 +21,18 @@ const menuItems = [
     label: "Historial visitas",
     href: "/historial-visitas",
   },
- {
-  label: "Encomiendas",
-  href: "/encomiendas",
-},
-{
-  label: "Historial encomiendas",
-  href: "/historial-encomiendas",
-},
-{
-  label: "Reserva espacios",
-  href: "/reservas",
-},
+  {
+    label: "Encomiendas",
+    href: "/encomiendas",
+  },
+  {
+    label: "Historial encomiendas",
+    href: "/historial-encomiendas",
+  },
+  {
+    label: "Reserva espacios",
+    href: "/reservas",
+  },
   {
     label: "Departamentos",
     href: "/",
@@ -58,6 +54,20 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
 
+  const [nombreEdificio, setNombreEdificio] = useState("Edificio Los Alerces");
+  const [direccion, setDireccion] = useState("Av. Alemania 1234, Temuco");
+
+  useEffect(() => {
+    const configuracionGuardada = localStorage.getItem("configuracion");
+
+    if (configuracionGuardada) {
+      const configuracion = JSON.parse(configuracionGuardada);
+
+      setNombreEdificio(configuracion.nombreEdificio || "Edificio Los Alerces");
+      setDireccion(configuracion.direccion || "Av. Alemania 1234, Temuco");
+    }
+  }, []);
+
   return (
     <aside className="w-72 bg-[#061A33] text-white">
       <div className="flex min-h-screen flex-col justify-between p-6">
@@ -68,11 +78,11 @@ export default function Sidebar() {
             </p>
 
             <h1 className="mt-3 text-xl font-bold leading-tight text-white">
-              {edificio.nombre}
+              {nombreEdificio}
             </h1>
 
             <p className="mt-2 text-sm leading-relaxed text-slate-300">
-              {edificio.direccion}
+              {direccion}
             </p>
 
             <div className="mt-4 h-1 w-16 rounded-full bg-[#D4AF37]" />
