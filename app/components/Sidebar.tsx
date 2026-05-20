@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+const edificio = {
+  nombre: "Edificio Los Alerces",
+  direccion: "Av. Alemania 1234, Temuco",
+};
+
 const menuItems = [
   {
     label: "Inicio",
@@ -51,39 +56,60 @@ export default function Sidebar() {
 
   return (
     <aside className="w-72 bg-[#061A33] text-white">
-      <div className="p-6">
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-[#D4AF37]">LG</h1>
-          <p className="text-sm font-semibold">LG Seguridad SPA</p>
-          <p className="text-xs text-slate-300">y Diseño</p>
+      <div className="flex min-h-screen flex-col justify-between p-6">
+        <div>
+          <div className="mb-10 rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D4AF37]">
+              Control Conserjería
+            </p>
+
+            <h1 className="mt-3 text-xl font-bold leading-tight text-white">
+              {edificio.nombre}
+            </h1>
+
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              {edificio.direccion}
+            </p>
+
+            <div className="mt-4 h-1 w-16 rounded-full bg-[#D4AF37]" />
+          </div>
+
+          <nav className="space-y-2">
+            {menuItems.map((item, index) => {
+              const activo = pathname === item.href;
+
+              return (
+                <div key={item.label}>
+                  {index === 1 && (
+                    <p className="pt-4 pb-2 text-xs font-semibold uppercase text-[#D4AF37]">
+                      Módulos del sistema
+                    </p>
+                  )}
+
+                  <Link
+                    href={item.href}
+                    className={`block rounded-xl px-4 py-3 font-semibold transition ${
+                      activo
+                        ? "bg-white text-[#061A33] shadow-sm"
+                        : "text-slate-200 hover:bg-white/10"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </div>
+              );
+            })}
+          </nav>
         </div>
 
-        <nav className="space-y-2">
-          {menuItems.map((item, index) => {
-            const activo = pathname === item.href;
-
-            return (
-              <div key={item.label}>
-                {index === 1 && (
-                  <p className="pt-4 pb-2 text-xs font-semibold uppercase text-[#D4AF37]">
-                    Control conserjería
-                  </p>
-                )}
-
-                <Link
-                  href={item.href}
-                  className={`block rounded-xl px-4 py-3 font-semibold transition ${
-                    activo
-                      ? "bg-white text-[#061A33]"
-                      : "text-slate-200 hover:bg-white/10"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </div>
-            );
-          })}
-        </nav>
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <p className="text-xs font-semibold uppercase text-[#D4AF37]">
+            Turno activo
+          </p>
+          <p className="mt-1 text-sm text-slate-200">
+            Sistema de control operacional
+          </p>
+        </div>
       </div>
     </aside>
   );
