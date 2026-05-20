@@ -25,14 +25,18 @@ const menuItems = [
     label: "Historial visitas",
     href: "/historial-visitas",
   },
-  {
-    label: "Encomiendas",
-    href: "/encomiendas",
-  },
-  {
-    label: "Reserva espacios",
-    href: "/reservas",
-  },
+ {
+  label: "Encomiendas",
+  href: "/encomiendas",
+},
+{
+  label: "Historial encomiendas",
+  href: "/historial-encomiendas",
+},
+{
+  label: "Reserva espacios",
+  href: "/reservas",
+},
   {
     label: "Departamentos",
     href: "/",
