@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Departamento = {
   numero: string;
@@ -12,16 +12,30 @@ type NewDepartmentModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSave: (departamento: Departamento) => void;
+  departamentoEditar?: Departamento | null;
 };
 
 export default function NewDepartmentModal({
   isOpen,
   onClose,
   onSave,
+  departamentoEditar,
 }: NewDepartmentModalProps) {
   const [numero, setNumero] = useState("");
   const [tipo, setTipo] = useState("PROPIETARIO");
   const [residentesTexto, setResidentesTexto] = useState("");
+
+  useEffect(() => {
+    if (departamentoEditar) {
+      setNumero(departamentoEditar.numero);
+      setTipo(departamentoEditar.tipo);
+      setResidentesTexto(departamentoEditar.residentes.join("\n"));
+    } else {
+      setNumero("");
+      setTipo("PROPIETARIO");
+      setResidentesTexto("");
+    }
+  }, [departamentoEditar, isOpen]);
 
   if (!isOpen) return null;
 
@@ -42,9 +56,6 @@ export default function NewDepartmentModal({
       residentes,
     });
 
-    setNumero("");
-    setTipo("PROPIETARIO");
-    setResidentesTexto("");
     onClose();
   };
 
@@ -54,7 +65,7 @@ export default function NewDepartmentModal({
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-[#061A33]">
-              Nuevo Departamento
+              {departamentoEditar ? "Editar Departamento" : "Nuevo Departamento"}
             </h2>
             <p className="text-sm text-slate-500">
               Ingresa los datos principales de la unidad.
@@ -122,7 +133,7 @@ export default function NewDepartmentModal({
               onClick={guardarDepartamento}
               className="rounded-xl bg-[#061A33] px-5 py-3 font-semibold text-white hover:bg-[#0A2547]"
             >
-              Guardar departamento
+              {departamentoEditar ? "Guardar cambios" : "Guardar departamento"}
             </button>
           </div>
         </form>

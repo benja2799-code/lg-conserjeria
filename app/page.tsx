@@ -16,6 +16,11 @@ const [modalAbierto, setModalAbierto] = useState(false);
 const [listaDepartamentos, setListaDepartamentos] = useState(
   departamentosIniciales
 );
+const [departamentoEditar, setDepartamentoEditar] = useState<{
+  numero: string;
+  tipo: string;
+  residentes: string[];
+} | null>(null);
 
 useEffect(() => {
   const departamentosGuardados = localStorage.getItem("departamentos");
@@ -90,7 +95,10 @@ const eliminarDepartamento = (numero: string) => {
               </div>
 
               <button
-  onClick={() => setModalAbierto(true)}
+  onClick={() => {
+    setDepartamentoEditar(null);
+    setModalAbierto(true);
+  }}
   className="rounded-xl bg-[#061A33] px-6 py-3 font-semibold text-white shadow hover:bg-[#0A2547]"
 >
   + Nuevo Departamento
@@ -159,12 +167,16 @@ const eliminarDepartamento = (numero: string) => {
             {departamentosFiltrados.length > 0 ? (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
                 {departamentosFiltrados.map((depto) => (
-                  <DepartmentCard
+                 <DepartmentCard
   key={depto.numero}
   numero={depto.numero}
   tipo={depto.tipo}
   residentes={depto.residentes}
   onDelete={eliminarDepartamento}
+  onEdit={(departamento) => {
+    setDepartamentoEditar(departamento);
+    setModalAbierto(true);
+  }}
 />
                 ))}
               </div>
@@ -188,10 +200,24 @@ const eliminarDepartamento = (numero: string) => {
       </div>
       <NewDepartmentModal
   isOpen={modalAbierto}
-  onClose={() => setModalAbierto(false)}
-  onSave={(nuevoDepartamento) =>
-    setListaDepartamentos([nuevoDepartamento, ...listaDepartamentos])
-  }
+  onClose={() => {
+    setModalAbierto(false);
+    setDepartamentoEditar(null);
+  }}
+  departamentoEditar={departamentoEditar}
+  onSave={(departamentoGuardado) => {
+    if (departamentoEditar) {
+      setListaDepartamentos(
+        listaDepartamentos.map((depto) =>
+          depto.numero === departamentoEditar.numero
+            ? departamentoGuardado
+            : depto
+        )
+      );
+    } else {
+      setListaDepartamentos([departamentoGuardado, ...listaDepartamentos]);
+    }
+  }}
 />
 
 
