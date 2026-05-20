@@ -1,4 +1,54 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const menuItems = [
+  {
+    label: "Inicio",
+    href: "/",
+  },
+  {
+    label: "Libro de novedades",
+    href: "/novedades",
+  },
+  {
+    label: "Visitas",
+    href: "/visitas",
+  },
+  {
+    label: "Historial visitas",
+    href: "/historial-visitas",
+  },
+  {
+    label: "Encomiendas",
+    href: "/encomiendas",
+  },
+  {
+    label: "Reserva espacios",
+    href: "/reservas",
+  },
+  {
+    label: "Departamentos",
+    href: "/",
+  },
+  {
+    label: "Residentes",
+    href: "/residentes",
+  },
+  {
+    label: "Vehículos",
+    href: "/vehiculos",
+  },
+  {
+    label: "Configuración",
+    href: "/configuracion",
+  },
+];
+
 export default function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="w-72 bg-[#061A33] text-white">
       <div className="p-6">
@@ -9,49 +59,30 @@ export default function Sidebar() {
         </div>
 
         <nav className="space-y-2">
-          <div className="rounded-xl bg-white/10 px-4 py-3 font-semibold">
-            Inicio
-          </div>
+          {menuItems.map((item, index) => {
+            const activo = pathname === item.href;
 
-          <p className="pt-4 text-xs font-semibold uppercase text-[#D4AF37]">
-            Control conserjería
-          </p>
+            return (
+              <div key={item.label}>
+                {index === 1 && (
+                  <p className="pt-4 pb-2 text-xs font-semibold uppercase text-[#D4AF37]">
+                    Control conserjería
+                  </p>
+                )}
 
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Libro de novedades
-          </div>
-
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Visitas
-          </div>
-
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Historial visitas
-          </div>
-
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Encomiendas
-          </div>
-
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Reserva espacios
-          </div>
-
-          <div className="rounded-xl bg-white px-4 py-3 font-semibold text-[#061A33]">
-            Departamentos
-          </div>
-
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Residentes
-          </div>
-
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Vehículos
-          </div>
-
-          <div className="rounded-xl px-4 py-3 text-slate-200 hover:bg-white/10">
-            Configuración
-          </div>
+                <Link
+                  href={item.href}
+                  className={`block rounded-xl px-4 py-3 font-semibold transition ${
+                    activo
+                      ? "bg-white text-[#061A33]"
+                      : "text-slate-200 hover:bg-white/10"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </div>
+            );
+          })}
         </nav>
       </div>
     </aside>
