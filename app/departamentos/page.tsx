@@ -173,38 +173,44 @@ export default function DepartamentosPage() {
               </button>
             </div>
 
-            <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-5">
-              <StatsCard
-                title="Visitas hoy"
-                value="18"
-                description="↑ 12% vs ayer"
-                highlighted
-              />
+            <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
+  <StatsCard
+    title="Departamentos"
+    value={String(listaDepartamentos.length)}
+    description="Total registrados"
+    highlighted
+  />
 
-              <StatsCard
-                title="Encomiendas pendientes"
-                value="7"
-                description="Ver detalles →"
-              />
+  <StatsCard
+    title="Propietarios"
+    value={String(
+      listaDepartamentos.filter(
+        (depto) => depto.tipo.toUpperCase() === "PROPIETARIO"
+      ).length
+    )}
+    description="Unidades propias"
+  />
 
-              <StatsCard
-                title="Reservas hoy"
-                value="3"
-                description="Ver calendario →"
-              />
+  <StatsCard
+    title="Arrendados"
+    value={String(
+      listaDepartamentos.filter(
+        (depto) => depto.tipo.toUpperCase() === "ARRENDADO"
+      ).length
+    )}
+    description="Unidades arrendadas"
+  />
 
-              <StatsCard
-                title="Incidentes abiertos"
-                value="2"
-                description="Ver detalles →"
-              />
-
-              <StatsCard
-                title="Departamentos"
-                value={String(listaDepartamentos.length)}
-                description="Registrados"
-              />
-            </div>
+  <StatsCard
+    title="Con residentes"
+    value={String(
+      listaDepartamentos.filter(
+        (depto) => normalizarResidentes(depto.residentes).length > 0
+      ).length
+    )}
+    description="Con personas asociadas"
+  />
+</div>
 
             <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
               <input
