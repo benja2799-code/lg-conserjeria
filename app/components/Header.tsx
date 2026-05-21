@@ -48,20 +48,20 @@ type PerfilUsuario = {
   activo: boolean;
 };
 
+type TurnoActivo = {
+  id: string;
+  tipo_turno: string;
+  hora_inicio: string;
+  estado: string;
+};
+
 export default function Header() {
   const [nombre, setNombre] = useState("Usuario");
   const [rol, setRol] = useState("Cargando...");
-  const [turno, setTurno] = useState("08:00 - 20:00");
+  const [turno, setTurno] = useState("Sin turno activo");
 
   useEffect(() => {
     const cargarDatos = async () => {
-      const configuracionGuardada = localStorage.getItem("configuracion");
-
-      if (configuracionGuardada) {
-        const configuracion = JSON.parse(configuracionGuardada);
-        setTurno(configuracion.turno || "08:00 - 20:00");
-      }
-
       const {
         data: { user },
         error: errorUser,
@@ -70,6 +70,7 @@ export default function Header() {
       if (errorUser || !user) {
         setNombre("Usuario");
         setRol("SIN SESIÓN");
+        setTurno("Sin turno activo");
         return;
       }
 
@@ -83,6 +84,7 @@ export default function Header() {
         console.error("Error perfil usuario:", errorPerfil);
         setNombre(user.email || "Usuario");
         setRol("SIN ROL");
+        setTurno("Sin turno activo");
         return;
       }
 
@@ -91,6 +93,7 @@ export default function Header() {
       if (!perfilUsuario.activo) {
         setNombre(perfilUsuario.nombre || "Usuario");
         setRol("USUARIO INACTIVO");
+        setTurno("Sin turno activo");
         return;
       }
 
@@ -106,6 +109,32 @@ export default function Header() {
           email: user.email,
         })
       );
+
+      const { data: turnoActivo, error: errorTurno } = await supabase
+  .from("turnos")
+  .select("id, nombre_conserje, tipo_turno, hora_inicio, estado")
+        .eq("usuario_id", user.id)
+        .eq("estado", "ACTIVO")
+        .order("hora_inicio", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (errorTurno) {
+        console.error("Error turno activo:", errorTurno);
+        setTurno("Sin turno activo");
+        return;
+      }
+
+      if (turnoActivo) {
+  const turnoData = turnoActivo as TurnoActivo & {
+    nombre_conserje: string;
+  };
+
+  setNombre(turnoData.nombre_conserje || perfilUsuario.nombre || "Usuario");
+  setTurno(turnoData.tipo_turno);
+} else {
+  setTurno("Sin turno activo");
+}
     };
 
     cargarDatos();
@@ -162,7 +191,17 @@ export default function Header() {
 
             <p className="text-sm font-bold text-[#D9A520]">{rol}</p>
 
-            <p className="text-xs text-slate-400">Turno {turno}</p>
+            <p
+              className={`text-xs font-semibold ${
+                turno === "Sin turno activo"
+                  ? "text-red-500"
+                  : "text-green-600"
+              }`}
+            >
+              {turno === "Sin turno activo"
+                ? "Sin turno activo"
+                : `Turno activo ${turno}`}
+            </p>
           </div>
 
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0B1F3A] text-lg font-black text-white shadow-md">
