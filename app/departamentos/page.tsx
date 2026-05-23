@@ -15,9 +15,9 @@ type Departamento = {
   propietario: string | null;
   telefono_propietario: string | null;
   correo_propietario: string | null;
-  estado: string;
+  estado: string | null;
   observacion: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 
 export default function DepartamentosPage() {
@@ -115,7 +115,7 @@ export default function DepartamentosPage() {
       referencia_tabla: "departamentos",
     });
 
-    console.log("Evento departamento:", evento);
+    console.log("Evento departamento registrado:", evento);
 
     limpiarFormulario();
     await cargarDepartamentos();
@@ -124,8 +124,10 @@ export default function DepartamentosPage() {
   };
 
   const cambiarEstadoDepartamento = async (departamento: Departamento) => {
+    const estadoActual = departamento.estado || "HABITADO";
+
     const nuevoEstado =
-      departamento.estado === "HABITADO" ? "DESOCUPADO" : "HABITADO";
+      estadoActual === "HABITADO" ? "DESOCUPADO" : "HABITADO";
 
     const confirmar = confirm(
       `¿Deseas cambiar el estado del departamento ${departamento.numero} a ${nuevoEstado}?`
@@ -214,7 +216,7 @@ export default function DepartamentosPage() {
           .toLowerCase()
           .includes(texto) ||
         (departamento.observacion || "").toLowerCase().includes(texto) ||
-        departamento.estado.toLowerCase().includes(texto)
+        (departamento.estado || "").toLowerCase().includes(texto)
       );
     });
   }, [departamentos, busqueda]);
@@ -286,8 +288,7 @@ export default function DepartamentosPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Cada departamento creado quedará automáticamente en el Registro
-                  general del sistema.
+                  Cada departamento creado quedará automáticamente en el Registro general.
                 </p>
               </div>
 
@@ -427,6 +428,9 @@ export default function DepartamentosPage() {
                           Estado
                         </th>
                         <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                          Creación
+                        </th>
+                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
                           Acciones
                         </th>
                       </tr>
@@ -436,7 +440,7 @@ export default function DepartamentosPage() {
                       {cargando ? (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={8}
                             className="px-5 py-10 text-center font-bold text-[#0B1F3A]"
                           >
                             Cargando departamentos...
@@ -478,8 +482,12 @@ export default function DepartamentosPage() {
                                     : "bg-slate-100 text-slate-500"
                                 }`}
                               >
-                                {departamento.estado}
+                                {departamento.estado || "-"}
                               </span>
+                            </td>
+
+                            <td className="px-5 py-4 text-sm text-slate-500">
+                              {formatearFecha(departamento.created_at)}
                             </td>
 
                             <td className="px-5 py-4">
@@ -508,7 +516,7 @@ export default function DepartamentosPage() {
                       ) : (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={8}
                             className="px-5 py-10 text-center text-slate-500"
                           >
                             No se encontraron departamentos.

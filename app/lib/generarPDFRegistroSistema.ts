@@ -1,5 +1,4 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 export type RegistroSistemaPDF = {
   id: string;
@@ -23,160 +22,151 @@ const formatearFecha = (fecha: string) => {
   });
 };
 
-const cargarLogo = async () => {
-  try {
-    const response = await fetch("/logo_LG.png");
-    const blob = await response.blob();
-
-    return await new Promise<string>((resolve) => {
-      const reader = new FileReader();
-
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
+const cortarTexto = (texto: string, largo: number) => {
+  if (!texto) return "-";
+  return texto.length > largo ? `${texto.slice(0, largo)}...` : texto;
 };
 
-export async function generarPDFRegistroSistema(
-  registros: RegistroSistemaPDF[]
-) {
-  if (registros.length === 0) {
-    alert("No hay registros para generar PDF.");
-    return;
-  }
-
-  const doc = new jsPDF("p", "mm", "a4");
-
-  const azul = [11, 31, 58] as [number, number, number];
-  const dorado = [217, 165, 32] as [number, number, number];
-  const grisClaro = [244, 246, 249] as [number, number, number];
-
-  const logo = await cargarLogo();
-
-  doc.setFillColor(...azul);
-  doc.rect(0, 0, 210, 34, "F");
-
-  if (logo) {
-    doc.addImage(logo, "PNG", 14, 7, 20, 20);
-  }
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("REGISTRO GENERAL DEL SISTEMA", 105, 14, {
-    align: "center",
-  });
-
-  doc.setFontSize(9);
-  doc.text("Auditoría completa de acciones por módulo", 105, 23, {
-    align: "center",
-  });
-
-  doc.setTextColor(0, 0, 0);
-
-  doc.setFillColor(...grisClaro);
-  doc.roundedRect(14, 42, 182, 30, 3, 3, "F");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...dorado);
-  doc.text("RESUMEN DEL REGISTRO", 20, 51);
-
-  doc.setTextColor(...azul);
-  doc.setFontSize(10);
-  doc.text("Total acciones:", 20, 61);
-  doc.text("Fecha emisión:", 110, 61);
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(40, 40, 40);
-  doc.text(String(registros.length), 52, 61);
-  doc.text(new Date().toLocaleString("es-CL"), 145, 61);
-
-  let y = 84;
-
-  const modulos = Array.from(new Set(registros.map((r) => r.modulo)));
-
-  for (const modulo of modulos) {
-    const registrosModulo = registros.filter((r) => r.modulo === modulo);
-
-    if (y > 245) {
-      doc.addPage();
-      y = 25;
+export function generarPDFRegistroSistema(registros: RegistroSistemaPDF[]) {
+  try {
+    if (!registros || registros.length === 0) {
+      alert("No hay registros para descargar.");
+      return;
     }
 
+    const doc = new jsPDF("p", "mm", "a4");
+
+    const azul: [number, number, number] = [11, 31, 58];
+    const dorado: [number, number, number] = [217, 165, 32];
+    const gris: [number, number, number] = [244, 246, 249];
+
+    const margen = 14;
+    let y = 0;
+
+    doc.setFillColor(...azul);
+    doc.rect(0, 0, 210, 32, "F");
+
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(...azul);
-    doc.text(`${modulo.toUpperCase()} (${registrosModulo.length})`, 14, y);
-
-    const filas = registrosModulo.map((registro) => [
-      formatearFecha(registro.created_at),
-      registro.accion,
-      registro.descripcion,
-      registro.usuario_nombre || "-",
-      registro.usuario_rol || "-",
-    ]);
-
-    autoTable(doc, {
-      startY: y + 5,
-      head: [["Fecha", "Acción", "Descripción", "Usuario", "Rol"]],
-      body: filas,
-      theme: "grid",
-      styles: {
-        fontSize: 7,
-        cellPadding: 2,
-        valign: "middle",
-        lineColor: [220, 220, 220],
-        lineWidth: 0.1,
-      },
-      headStyles: {
-        fillColor: azul,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: grisClaro,
-      },
-      columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 32 },
-        2: { cellWidth: 70 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 20 },
-      },
+    doc.setFontSize(15);
+    doc.text("REGISTRO GENERAL DEL SISTEMA", 105, 13, {
+      align: "center",
     });
 
-    y = ((doc as any).lastAutoTable?.finalY || y + 20) + 12;
-  }
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("Historial completo de acciones registradas", 105, 21, {
+      align: "center",
+    });
 
-  const finalY = y + 15;
+    y = 42;
 
-  if (finalY < 265) {
+    doc.setFillColor(...gris);
+    doc.roundedRect(margen, y, 182, 26, 3, 3, "F");
+
+    doc.setTextColor(...dorado);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
+    doc.text("RESUMEN", margen + 5, y + 8);
+
     doc.setTextColor(...azul);
+    doc.setFontSize(10);
+    doc.text(`Total de registros: ${registros.length}`, margen + 5, y + 17);
 
-    doc.text("FIRMA RESPONSABLE:", 20, finalY);
-    doc.line(20, finalY + 18, 90, finalY + 18);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Fecha emisión: ${new Date().toLocaleString("es-CL")}`,
+      115,
+      y + 17
+    );
 
-    doc.text("FIRMA SUPERVISOR:", 120, finalY);
-    doc.line(120, finalY + 18, 190, finalY + 18);
+    y += 38;
+
+    const modulos = Array.from(new Set(registros.map((r) => r.modulo))).sort();
+
+    for (const modulo of modulos) {
+      const registrosModulo = registros.filter((r) => r.modulo === modulo);
+
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setTextColor(...azul);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(`${modulo.toUpperCase()} (${registrosModulo.length})`, margen, y);
+
+      y += 6;
+
+      doc.setFillColor(...azul);
+      doc.rect(margen, y, 182, 8, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+
+      doc.text("Fecha", margen + 2, y + 5);
+      doc.text("Acción", margen + 36, y + 5);
+      doc.text("Descripción", margen + 72, y + 5);
+      doc.text("Usuario", margen + 150, y + 5);
+
+      y += 8;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+
+      for (const registro of registrosModulo) {
+        if (y > 275) {
+          doc.addPage();
+          y = 20;
+
+          doc.setFillColor(...azul);
+          doc.rect(margen, y, 182, 8, "F");
+
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.text("Fecha", margen + 2, y + 5);
+          doc.text("Acción", margen + 36, y + 5);
+          doc.text("Descripción", margen + 72, y + 5);
+          doc.text("Usuario", margen + 150, y + 5);
+
+          y += 8;
+          doc.setFont("helvetica", "normal");
+        }
+
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margen, y, 182, 9, "S");
+
+        doc.setTextColor(40, 40, 40);
+
+        doc.text(formatearFecha(registro.created_at), margen + 2, y + 6);
+        doc.text(cortarTexto(registro.accion, 22), margen + 36, y + 6);
+        doc.text(cortarTexto(registro.descripcion, 55), margen + 72, y + 6);
+        doc.text(cortarTexto(registro.usuario_nombre || "-", 18), margen + 150, y + 6);
+
+        y += 9;
+      }
+
+      y += 8;
+    }
+
+    const totalPaginas = doc.getNumberOfPages();
+
+    for (let i = 1; i <= totalPaginas; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Página ${i} de ${totalPaginas}`, 105, 290, {
+        align: "center",
+      });
+    }
+
+    doc.save(
+      `registro-general-sistema-${new Date().toISOString().slice(0, 10)}.pdf`
+    );
+  } catch (error) {
+    console.error("Error al generar PDF:", error);
+    alert("No se pudo generar el PDF del registro general.");
   }
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(120, 120, 120);
-
-  doc.text(
-    `Documento generado automáticamente el ${new Date().toLocaleString(
-      "es-CL"
-    )}`,
-    105,
-    287,
-    { align: "center" }
-  );
-
-  doc.save(`registro-general-sistema-${new Date().toISOString().slice(0, 10)}.pdf`);
 }

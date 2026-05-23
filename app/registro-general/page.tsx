@@ -117,7 +117,7 @@ export default function RegistroGeneralPage() {
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
-                  Auditoría del sistema
+                  Registro operacional
                 </p>
 
                 <h1 className="text-4xl font-black text-[#0B1F3A]">
@@ -125,7 +125,7 @@ export default function RegistroGeneralPage() {
                 </h1>
 
                 <p className="mt-2 max-w-2xl text-slate-500">
-                  Historial completo de acciones registradas en cada ventana del sistema.
+                  Historial completo de movimientos registrados en el sistema.
                 </p>
 
                 <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
@@ -143,7 +143,7 @@ export default function RegistroGeneralPage() {
                   onClick={() => generarPDFRegistroSistema(registrosFiltrados)}
                   className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
                 >
-                  Descargar PDF completo
+                  Descargar registro general
                 </button>
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function RegistroGeneralPage() {
               <StatsCard
                 title="Total"
                 value={String(registrosFiltrados.length)}
-                description="Acciones registradas"
+                description="Registros filtrados"
                 highlighted
               />
 
