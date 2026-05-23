@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import StatsCard from "../components/StatsCard";
 import { supabase } from "../lib/supabase";
 import { generarPDFAsistencia } from "../lib/generarPDFAsistencia";
+
 type Turno = {
   id: string;
   usuario_id: string | null;
@@ -18,9 +19,34 @@ type Turno = {
   created_at: string;
 };
 
+const meses = [
+  { value: "0", label: "Enero" },
+  { value: "1", label: "Febrero" },
+  { value: "2", label: "Marzo" },
+  { value: "3", label: "Abril" },
+  { value: "4", label: "Mayo" },
+  { value: "5", label: "Junio" },
+  { value: "6", label: "Julio" },
+  { value: "7", label: "Agosto" },
+  { value: "8", label: "Septiembre" },
+  { value: "9", label: "Octubre" },
+  { value: "10", label: "Noviembre" },
+  { value: "11", label: "Diciembre" },
+];
+
 export default function AsistenciaPage() {
+  const fechaActual = new Date();
+
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [busqueda, setBusqueda] = useState("");
+  const [mesSeleccionado, setMesSeleccionado] = useState(
+    String(fechaActual.getMonth())
+  );
+  const [anioSeleccionado, setAnioSeleccionado] = useState(
+    String(fechaActual.getFullYear())
+  );
+  const [conserjeSeleccionado, setConserjeSeleccionado] = useState("TODOS");
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState("TODOS");
   const [cargando, setCargando] = useState(true);
 
   const cargarTurnos = async () => {
@@ -75,75 +101,89 @@ export default function AsistenciaPage() {
     return `${horas}h ${minutos}m`;
   };
 
+  const calcularHorasNumero = (inicio: string, termino: string | null) => {
+    if (!termino) return 0;
+
+    const inicioDate = new Date(inicio).getTime();
+    const terminoDate = new Date(termino).getTime();
+
+    const diferenciaMs = terminoDate - inicioDate;
+
+    if (diferenciaMs <= 0) return 0;
+
+    return diferenciaMs / 1000 / 60 / 60;
+  };
+
+  const conserjesDisponibles = useMemo(() => {
+    const nombres = turnos.map((turno) => turno.nombre_conserje).filter(Boolean);
+
+    return Array.from(new Set(nombres));
+  }, [turnos]);
+
+  const aniosDisponibles = useMemo(() => {
+    const anios = turnos.map((turno) =>
+      String(new Date(turno.hora_inicio).getFullYear())
+    );
+
+    const unicos = Array.from(new Set(anios));
+
+    if (!unicos.includes(String(fechaActual.getFullYear()))) {
+      unicos.push(String(fechaActual.getFullYear()));
+    }
+
+    return unicos.sort((a, b) => Number(b) - Number(a));
+  }, [turnos]);
+
   const turnosFiltrados = turnos.filter((turno) => {
     const texto = busqueda.toLowerCase();
+    const fechaTurno = new Date(turno.hora_inicio);
 
-    return (
+    const coincideBusqueda =
       turno.nombre_conserje.toLowerCase().includes(texto) ||
       (turno.rol || "").toLowerCase().includes(texto) ||
       turno.tipo_turno.toLowerCase().includes(texto) ||
-      turno.estado.toLowerCase().includes(texto)
+      turno.estado.toLowerCase().includes(texto);
+
+    const coincideMes =
+      String(fechaTurno.getMonth()) === String(mesSeleccionado);
+
+    const coincideAnio =
+      String(fechaTurno.getFullYear()) === String(anioSeleccionado);
+
+    const coincideConserje =
+      conserjeSeleccionado === "TODOS" ||
+      turno.nombre_conserje === conserjeSeleccionado;
+
+    const coincideEstado =
+      estadoSeleccionado === "TODOS" || turno.estado === estadoSeleccionado;
+
+    return (
+      coincideBusqueda &&
+      coincideMes &&
+      coincideAnio &&
+      coincideConserje &&
+      coincideEstado
     );
   });
 
-  const turnosActivos = turnos.filter((turno) => turno.estado === "ACTIVO");
+  const turnosActivos = turnosFiltrados.filter(
+    (turno) => turno.estado === "ACTIVO"
+  );
 
-  const turnosFinalizados = turnos.filter(
+  const turnosFinalizados = turnosFiltrados.filter(
     (turno) => turno.estado === "FINALIZADO"
   );
 
-  const descargarCSV = () => {
-    if (turnosFiltrados.length === 0) {
-      alert("No hay registros para descargar.");
-      return;
-    }
+  const totalHoras = turnosFiltrados.reduce((total, turno) => {
+    return total + calcularHorasNumero(turno.hora_inicio, turno.hora_termino);
+  }, 0);
 
-    const encabezados = [
-      "Conserje",
-      "Rol",
-      "Turno",
-      "Inicio",
-      "Termino",
-      "Duracion",
-      "Estado",
-    ];
-
-    const filas = turnosFiltrados.map((turno) => [
-      turno.nombre_conserje,
-      turno.rol || "",
-      turno.tipo_turno,
-      formatearFecha(turno.hora_inicio),
-      formatearFecha(turno.hora_termino),
-      calcularDuracion(turno.hora_inicio, turno.hora_termino),
-      turno.estado,
-    ]);
-
-    const contenidoCSV = [
-      encabezados.join(";"),
-      ...filas.map((fila) =>
-        fila
-          .map((valor) => `"${String(valor).replaceAll('"', '""')}"`)
-          .join(";")
-      ),
-    ].join("\n");
-
-    const blob = new Blob(["\uFEFF" + contenidoCSV], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `historial-asistencia-${new Date()
-      .toISOString()
-      .slice(0, 10)}.csv`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
+  const limpiarFiltros = () => {
+    setBusqueda("");
+    setMesSeleccionado(String(fechaActual.getMonth()));
+    setAnioSeleccionado(String(fechaActual.getFullYear()));
+    setConserjeSeleccionado("TODOS");
+    setEstadoSeleccionado("TODOS");
   };
 
   return (
@@ -166,26 +206,26 @@ export default function AsistenciaPage() {
                 </h1>
 
                 <p className="mt-2 max-w-2xl text-slate-500">
-                  Registro de ingresos, salidas y duración de turnos del
+                  Registro mensual de ingresos, salidas y duración de turnos del
                   personal de conserjería.
                 </p>
 
                 <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
               </div>
 
-             <button
-  onClick={() => generarPDFAsistencia(turnosFiltrados)}
-  className="w-fit rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
->
-  Descargar PDF
-</button>
+              <button
+                onClick={() => generarPDFAsistencia(turnosFiltrados)}
+                className="w-fit rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+              >
+                Descargar PDF
+              </button>
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
               <StatsCard
                 title="Registros"
-                value={String(turnos.length)}
-                description="Total de turnos"
+                value={String(turnosFiltrados.length)}
+                description="Turnos filtrados"
                 highlighted
               />
 
@@ -202,20 +242,109 @@ export default function AsistenciaPage() {
               />
 
               <StatsCard
-                title="Resultado"
-                value={String(turnosFiltrados.length)}
-                description="Registros filtrados"
+                title="Horas"
+                value={`${totalHoras.toFixed(1)}`}
+                description="Total realizadas"
               />
             </div>
 
             <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <input
-                type="text"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar por conserje, rol, turno o estado..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
-              />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Buscar
+                  </label>
+
+                  <input
+                    type="text"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder="Buscar por conserje, rol, turno o estado..."
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Conserje
+                  </label>
+
+                  <select
+                    value={conserjeSeleccionado}
+                    onChange={(e) => setConserjeSeleccionado(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
+                  >
+                    <option value="TODOS">Todos</option>
+
+                    {conserjesDisponibles.map((nombre) => (
+                      <option key={nombre} value={nombre}>
+                        {nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Mes
+                  </label>
+
+                  <select
+                    value={mesSeleccionado}
+                    onChange={(e) => setMesSeleccionado(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
+                  >
+                    {meses.map((mes) => (
+                      <option key={mes.value} value={mes.value}>
+                        {mes.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Año
+                  </label>
+
+                  <select
+                    value={anioSeleccionado}
+                    onChange={(e) => setAnioSeleccionado(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
+                  >
+                    {aniosDisponibles.map((anio) => (
+                      <option key={anio} value={anio}>
+                        {anio}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Estado
+                  </label>
+
+                  <select
+                    value={estadoSeleccionado}
+                    onChange={(e) => setEstadoSeleccionado(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10 md:w-64"
+                  >
+                    <option value="TODOS">Todos</option>
+                    <option value="ACTIVO">Activo</option>
+                    <option value="FINALIZADO">Finalizado</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={limpiarFiltros}
+                  className="w-fit rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -309,7 +438,8 @@ export default function AsistenciaPage() {
                           colSpan={7}
                           className="px-5 py-10 text-center text-slate-500"
                         >
-                          No se encontraron registros de asistencia.
+                          No se encontraron registros de asistencia para los
+                          filtros seleccionados.
                         </td>
                       </tr>
                     )}
