@@ -118,7 +118,7 @@ const menuItems = [
   { label: "Vehículos", href: "/vehiculos", icon: CarIcon },
   { label: "Configuración", href: "/configuracion", icon: SettingsIcon },
   { label: "Historial asistencia", href: "/asistencia", icon: ClockIcon },
-{ label: "Registro general", href: "/registro-general", icon: BookIcon },];
+,];
 
 export default function Sidebar() {
   const pathname = usePathname();
