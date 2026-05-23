@@ -1,0 +1,332 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
+import StatsCard from "../components/StatsCard";
+import { supabase } from "../lib/supabase";
+import { generarPDFAsistencia } from "../lib/generarPDFAsistencia";
+type Turno = {
+  id: string;
+  usuario_id: string | null;
+  nombre_conserje: string;
+  rol: string | null;
+  tipo_turno: string;
+  hora_inicio: string;
+  hora_termino: string | null;
+  estado: string;
+  created_at: string;
+};
+
+export default function AsistenciaPage() {
+  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [cargando, setCargando] = useState(true);
+
+  const cargarTurnos = async () => {
+    setCargando(true);
+
+    const { data, error } = await supabase
+      .from("turnos")
+      .select("*")
+      .order("hora_inicio", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      alert(`Error al cargar asistencia: ${error.message}`);
+      setCargando(false);
+      return;
+    }
+
+    setTurnos(data || []);
+    setCargando(false);
+  };
+
+  useEffect(() => {
+    cargarTurnos();
+  }, []);
+
+  const formatearFecha = (fecha: string | null) => {
+    if (!fecha) return "-";
+
+    return new Date(fecha).toLocaleString("es-CL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const calcularDuracion = (inicio: string, termino: string | null) => {
+    if (!termino) return "En curso";
+
+    const inicioDate = new Date(inicio).getTime();
+    const terminoDate = new Date(termino).getTime();
+
+    const diferenciaMs = terminoDate - inicioDate;
+
+    if (diferenciaMs <= 0) return "0h 0m";
+
+    const totalMinutos = Math.floor(diferenciaMs / 60000);
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+
+    return `${horas}h ${minutos}m`;
+  };
+
+  const turnosFiltrados = turnos.filter((turno) => {
+    const texto = busqueda.toLowerCase();
+
+    return (
+      turno.nombre_conserje.toLowerCase().includes(texto) ||
+      (turno.rol || "").toLowerCase().includes(texto) ||
+      turno.tipo_turno.toLowerCase().includes(texto) ||
+      turno.estado.toLowerCase().includes(texto)
+    );
+  });
+
+  const turnosActivos = turnos.filter((turno) => turno.estado === "ACTIVO");
+
+  const turnosFinalizados = turnos.filter(
+    (turno) => turno.estado === "FINALIZADO"
+  );
+
+  const descargarCSV = () => {
+    if (turnosFiltrados.length === 0) {
+      alert("No hay registros para descargar.");
+      return;
+    }
+
+    const encabezados = [
+      "Conserje",
+      "Rol",
+      "Turno",
+      "Inicio",
+      "Termino",
+      "Duracion",
+      "Estado",
+    ];
+
+    const filas = turnosFiltrados.map((turno) => [
+      turno.nombre_conserje,
+      turno.rol || "",
+      turno.tipo_turno,
+      formatearFecha(turno.hora_inicio),
+      formatearFecha(turno.hora_termino),
+      calcularDuracion(turno.hora_inicio, turno.hora_termino),
+      turno.estado,
+    ]);
+
+    const contenidoCSV = [
+      encabezados.join(";"),
+      ...filas.map((fila) =>
+        fila
+          .map((valor) => `"${String(valor).replaceAll('"', '""')}"`)
+          .join(";")
+      ),
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + contenidoCSV], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `historial-asistencia-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <main className="min-h-screen bg-[#F4F6F9] text-[#0B1220]">
+      <div className="flex min-h-screen">
+        <Sidebar />
+
+        <section className="flex min-h-screen flex-1 flex-col">
+          <Header />
+
+          <div className="flex-1 p-8">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
+                  Control de asistencia
+                </p>
+
+                <h1 className="text-4xl font-black text-[#0B1F3A]">
+                  Historial de asistencia
+                </h1>
+
+                <p className="mt-2 max-w-2xl text-slate-500">
+                  Registro de ingresos, salidas y duración de turnos del
+                  personal de conserjería.
+                </p>
+
+                <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+              </div>
+
+             <button
+  onClick={() => generarPDFAsistencia(turnosFiltrados)}
+  className="w-fit rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+>
+  Descargar PDF
+</button>
+            </div>
+
+            <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
+              <StatsCard
+                title="Registros"
+                value={String(turnos.length)}
+                description="Total de turnos"
+                highlighted
+              />
+
+              <StatsCard
+                title="Activos"
+                value={String(turnosActivos.length)}
+                description="Turnos en curso"
+              />
+
+              <StatsCard
+                title="Finalizados"
+                value={String(turnosFinalizados.length)}
+                description="Turnos cerrados"
+              />
+
+              <StatsCard
+                title="Resultado"
+                value={String(turnosFiltrados.length)}
+                description="Registros filtrados"
+              />
+            </div>
+
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <input
+                type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar por conserje, rol, turno o estado..."
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
+              />
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px] border-collapse">
+                  <thead className="bg-[#0B1F3A] text-white">
+                    <tr>
+                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                        Conserje
+                      </th>
+                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                        Rol
+                      </th>
+                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                        Turno
+                      </th>
+                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                        Inicio
+                      </th>
+                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                        Término
+                      </th>
+                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                        Duración
+                      </th>
+                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
+                        Estado
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {cargando ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-5 py-10 text-center font-bold text-[#0B1F3A]"
+                        >
+                          Cargando asistencia...
+                        </td>
+                      </tr>
+                    ) : turnosFiltrados.length > 0 ? (
+                      turnosFiltrados.map((turno) => (
+                        <tr
+                          key={turno.id}
+                          className="border-b border-slate-100 hover:bg-[#F8FAFC]"
+                        >
+                          <td className="px-5 py-4 font-bold text-[#0B1F3A]">
+                            {turno.nombre_conserje}
+                          </td>
+
+                          <td className="px-5 py-4 text-sm text-slate-500">
+                            {turno.rol || "-"}
+                          </td>
+
+                          <td className="px-5 py-4 text-sm font-semibold text-slate-600">
+                            {turno.tipo_turno}
+                          </td>
+
+                          <td className="px-5 py-4 text-sm text-slate-500">
+                            {formatearFecha(turno.hora_inicio)}
+                          </td>
+
+                          <td className="px-5 py-4 text-sm text-slate-500">
+                            {formatearFecha(turno.hora_termino)}
+                          </td>
+
+                          <td className="px-5 py-4 text-sm font-bold text-[#0B1F3A]">
+                            {calcularDuracion(
+                              turno.hora_inicio,
+                              turno.hora_termino
+                            )}
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-black ${
+                                turno.estado === "ACTIVO"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {turno.estado}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-5 py-10 text-center text-slate-500"
+                        >
+                          No se encontraron registros de asistencia.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <footer className="mt-auto flex items-center justify-between bg-[#0B1F3A] px-8 py-4 text-sm text-white">
+            <p>
+              © 2026 Control Conserjería. Todos los derechos reservados.
+            </p>
+            <p>Versión 1.0.0</p>
+          </footer>
+        </section>
+      </div>
+    </main>
+  );
+}

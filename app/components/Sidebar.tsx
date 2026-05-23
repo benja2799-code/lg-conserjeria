@@ -117,6 +117,7 @@ const menuItems = [
   { label: "Residentes", href: "/residentes", icon: UserIcon },
   { label: "Vehículos", href: "/vehiculos", icon: CarIcon },
   { label: "Configuración", href: "/configuracion", icon: SettingsIcon },
+  { label: "Historial asistencia", href: "/asistencia", icon: ClockIcon },
 ];
 
 export default function Sidebar() {
