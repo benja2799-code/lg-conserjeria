@@ -13,8 +13,8 @@ type Novedad = {
   titulo: string | null;
   descripcion: string | null;
   responsable: string | null;
-  estado: string;
-  created_at: string;
+  estado: string | null;
+  created_at: string | null;
 };
 
 export default function NovedadesPage() {
@@ -68,6 +68,8 @@ export default function NovedadesPage() {
       return;
     }
 
+    const estadoInicial = tipo === "INCIDENTE" ? "ABIERTA" : "REGISTRADA";
+
     const { data, error } = await supabase
       .from("novedades")
       .insert({
@@ -75,7 +77,7 @@ export default function NovedadesPage() {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
         responsable: responsable.trim() || "Conserjería",
-        estado: tipo === "INCIDENTE" ? "ABIERTA" : "REGISTRADA",
+        estado: estadoInicial,
       })
       .select("id")
       .single();
@@ -86,13 +88,15 @@ export default function NovedadesPage() {
       return;
     }
 
-    await registrarEvento({
+    const evento = await registrarEvento({
       modulo: "Novedades",
       accion: "Registrar novedad",
       descripcion: `Se registró una novedad tipo ${tipo}: ${titulo.trim()}.`,
       referencia_id: data?.id || null,
       referencia_tabla: "novedades",
     });
+
+    console.log("Evento novedad registrado:", evento);
 
     limpiarFormulario();
     await cargarNovedades();
@@ -181,7 +185,7 @@ export default function NovedadesPage() {
         (novedad.titulo || "").toLowerCase().includes(texto) ||
         (novedad.descripcion || "").toLowerCase().includes(texto) ||
         (novedad.responsable || "").toLowerCase().includes(texto) ||
-        novedad.estado.toLowerCase().includes(texto)
+        (novedad.estado || "").toLowerCase().includes(texto)
       );
     });
   }, [novedades, busqueda]);
@@ -203,10 +207,10 @@ export default function NovedadesPage() {
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <section className="flex min-h-screen flex-1 flex-col">
+        <section className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
           <Header />
 
-          <div className="flex-1 p-8">
+          <div className="min-w-0 flex-1 overflow-x-hidden p-8">
             <div className="mb-8">
               <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
                 Libro de turno
@@ -360,8 +364,8 @@ export default function NovedadesPage() {
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1100px] border-collapse">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full min-w-[1000px] border-collapse">
                     <thead className="bg-[#0B1F3A] text-white">
                       <tr>
                         <th className="px-5 py-4 text-left text-xs font-black uppercase">
@@ -428,7 +432,7 @@ export default function NovedadesPage() {
                               {novedad.titulo || "-"}
                             </td>
 
-                            <td className="max-w-[380px] px-5 py-4 text-sm leading-relaxed text-slate-500">
+                            <td className="max-w-[360px] px-5 py-4 text-sm leading-relaxed text-slate-500">
                               {novedad.descripcion || "-"}
                             </td>
 
@@ -446,7 +450,7 @@ export default function NovedadesPage() {
                                     : "bg-blue-50 text-blue-700"
                                 }`}
                               >
-                                {novedad.estado}
+                                {novedad.estado || "-"}
                               </span>
                             </td>
 

@@ -16,8 +16,8 @@ type Encomienda = {
   recibido_por: string | null;
   entregado_a: string | null;
   observacion: string | null;
-  estado: string;
-  created_at: string;
+  estado: string | null;
+  created_at: string | null;
 };
 
 export default function EncomiendasPage() {
@@ -82,7 +82,7 @@ export default function EncomiendasPage() {
         destinatario: destinatario.trim(),
         empresa: empresa.trim() || null,
         descripcion: descripcion.trim() || null,
-        recibido_por: recibidoPor.trim() || null,
+        recibido_por: recibidoPor.trim() || "Conserjería",
         entregado_a: null,
         observacion: observacion.trim() || null,
         estado: "PENDIENTE",
@@ -96,13 +96,15 @@ export default function EncomiendasPage() {
       return;
     }
 
-    await registrarEvento({
+    const evento = await registrarEvento({
       modulo: "Encomiendas",
       accion: "Registrar encomienda",
       descripcion: `Se registró una encomienda para el departamento ${departamentoNumero.trim()}, destinatario ${destinatario.trim()}.`,
       referencia_id: data?.id || null,
       referencia_tabla: "encomiendas",
     });
+
+    console.log("Evento encomienda registrado:", evento);
 
     limpiarFormulario();
     await cargarEncomiendas();
@@ -111,9 +113,7 @@ export default function EncomiendasPage() {
   };
 
   const entregarEncomienda = async (encomienda: Encomienda) => {
-    const entregadoA = prompt(
-      "Ingrese el nombre de quien retira la encomienda:"
-    );
+    const entregadoA = prompt("Ingrese el nombre de quien retira la encomienda:");
 
     if (!entregadoA || !entregadoA.trim()) {
       alert("Debes ingresar el nombre de quien retira.");
@@ -205,16 +205,14 @@ export default function EncomiendasPage() {
 
     return encomiendas.filter((encomienda) => {
       return (
-        (encomienda.departamento_numero || "")
-          .toLowerCase()
-          .includes(texto) ||
+        (encomienda.departamento_numero || "").toLowerCase().includes(texto) ||
         (encomienda.destinatario || "").toLowerCase().includes(texto) ||
         (encomienda.empresa || "").toLowerCase().includes(texto) ||
         (encomienda.descripcion || "").toLowerCase().includes(texto) ||
         (encomienda.recibido_por || "").toLowerCase().includes(texto) ||
         (encomienda.entregado_a || "").toLowerCase().includes(texto) ||
         (encomienda.observacion || "").toLowerCase().includes(texto) ||
-        encomienda.estado.toLowerCase().includes(texto)
+        (encomienda.estado || "").toLowerCase().includes(texto)
       );
     });
   }, [encomiendas, busqueda]);
@@ -232,25 +230,33 @@ export default function EncomiendasPage() {
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <section className="flex min-h-screen flex-1 flex-col">
+        <section className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
           <Header />
 
-          <div className="flex-1 p-8">
-            <div className="mb-8">
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
-                Control de paquetes
-              </p>
+          <div className="min-w-0 flex-1 overflow-x-hidden p-8">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
+                  Control de paquetes
+                </p>
 
-              <h1 className="text-4xl font-black text-[#0B1F3A]">
-                Encomiendas
-              </h1>
+                <h1 className="text-4xl font-black text-[#0B1F3A]">
+                  Encomiendas
+                </h1>
 
-              <p className="mt-2 max-w-2xl text-slate-500">
-                Registra la recepción, entrega y seguimiento de encomiendas del
-                edificio.
-              </p>
+                <p className="mt-2 max-w-2xl text-slate-500">
+                  Registra la recepción, entrega y seguimiento de encomiendas del edificio.
+                </p>
 
-              <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+                <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+              </div>
+
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="w-fit rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+              >
+                + Nueva encomienda
+              </button>
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
@@ -287,76 +293,45 @@ export default function EncomiendasPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Cada registro creado aquí quedará automáticamente en el
-                  Registro general del sistema.
+                  Cada recepción quedará registrada automáticamente en el Registro general.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Departamento
-                  </label>
+                <Campo
+                  label="Departamento"
+                  value={departamentoNumero}
+                  onChange={setDepartamentoNumero}
+                  placeholder="Ej: 1204"
+                />
 
-                  <input
-                    value={departamentoNumero}
-                    onChange={(e) => setDepartamentoNumero(e.target.value)}
-                    placeholder="Ej: 1204"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
+                <Campo
+                  label="Destinatario"
+                  value={destinatario}
+                  onChange={setDestinatario}
+                  placeholder="Ej: Juan Pérez"
+                />
 
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Destinatario
-                  </label>
+                <Campo
+                  label="Empresa / courier"
+                  value={empresa}
+                  onChange={setEmpresa}
+                  placeholder="Ej: Chilexpress, Starken, Mercado Libre"
+                />
 
-                  <input
-                    value={destinatario}
-                    onChange={(e) => setDestinatario(e.target.value)}
-                    placeholder="Ej: Juan Pérez"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
+                <Campo
+                  label="Descripción"
+                  value={descripcion}
+                  onChange={setDescripcion}
+                  placeholder="Ej: Caja mediana, sobre, paquete pequeño"
+                />
 
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Empresa / courier
-                  </label>
-
-                  <input
-                    value={empresa}
-                    onChange={(e) => setEmpresa(e.target.value)}
-                    placeholder="Ej: Chilexpress, Starken, Mercado Libre"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Descripción
-                  </label>
-
-                  <input
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    placeholder="Ej: Caja mediana, sobre, paquete pequeño"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Recibido por
-                  </label>
-
-                  <input
-                    value={recibidoPor}
-                    onChange={(e) => setRecibidoPor(e.target.value)}
-                    placeholder="Ej: Conserjería"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
+                <Campo
+                  label="Recibido por"
+                  value={recibidoPor}
+                  onChange={setRecibidoPor}
+                  placeholder="Ej: Conserjería"
+                />
               </div>
 
               <div className="mt-4">
@@ -410,8 +385,8 @@ export default function EncomiendasPage() {
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1100px] border-collapse">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full min-w-[1050px] border-collapse">
                     <thead className="bg-[#0B1F3A] text-white">
                       <tr>
                         <th className="px-5 py-4 text-left text-xs font-black uppercase">
@@ -489,7 +464,7 @@ export default function EncomiendasPage() {
                                     : "bg-green-100 text-green-700"
                                 }`}
                               >
-                                {encomienda.estado}
+                                {encomienda.estado || "-"}
                               </span>
                             </td>
 
@@ -542,5 +517,29 @@ export default function EncomiendasPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+type CampoProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+};
+
+function Campo({ label, value, onChange, placeholder = "" }: CampoProps) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+        {label}
+      </label>
+
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+      />
+    </div>
   );
 }

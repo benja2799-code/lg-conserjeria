@@ -248,24 +248,33 @@ export default function VisitasPage() {
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <section className="flex min-h-screen flex-1 flex-col">
+        <section className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
           <Header />
 
-          <div className="flex-1 p-8">
-            <div className="mb-8">
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
-                Control de acceso
-              </p>
+          <div className="min-w-0 flex-1 overflow-x-hidden p-8">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
+                  Control de acceso
+                </p>
 
-              <h1 className="text-4xl font-black text-[#0B1F3A]">
-                Visitas
-              </h1>
+                <h1 className="text-4xl font-black text-[#0B1F3A]">
+                  Visitas
+                </h1>
 
-              <p className="mt-2 max-w-2xl text-slate-500">
-                Registra el ingreso, salida y control de visitantes del edificio.
-              </p>
+                <p className="mt-2 max-w-2xl text-slate-500">
+                  Registra el ingreso, salida y control de visitantes del edificio.
+                </p>
 
-              <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+                <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+              </div>
+
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="w-fit rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+              >
+                + Nueva visita
+              </button>
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
@@ -302,37 +311,24 @@ export default function VisitasPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Los registros creados aquí quedarán automáticamente en el
-                  Registro general del sistema.
+                  Cada ingreso quedará registrado automáticamente en el Registro general.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Nombre visitante
-                  </label>
+                <Campo
+                  label="Nombre visitante"
+                  value={nombreVisitante}
+                  onChange={setNombreVisitante}
+                  placeholder="Ej: Juan Pérez"
+                />
 
-                  <input
-                    value={nombreVisitante}
-                    onChange={(e) => setNombreVisitante(e.target.value)}
-                    placeholder="Ej: Juan Pérez"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    RUT visitante
-                  </label>
-
-                  <input
-                    value={rutVisitante}
-                    onChange={(e) => setRutVisitante(e.target.value)}
-                    placeholder="Ej: 12.345.678-9"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
+                <Campo
+                  label="RUT visitante"
+                  value={rutVisitante}
+                  onChange={setRutVisitante}
+                  placeholder="Ej: 12.345.678-9"
+                />
 
                 <div>
                   <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
@@ -354,44 +350,26 @@ export default function VisitasPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Motivo
-                  </label>
+                <Campo
+                  label="Motivo"
+                  value={motivo}
+                  onChange={setMotivo}
+                  placeholder="Ej: Visita familiar"
+                />
 
-                  <input
-                    value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
-                    placeholder="Ej: Visita familiar"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
+                <Campo
+                  label="Autorizado por"
+                  value={autorizadoPor}
+                  onChange={setAutorizadoPor}
+                  placeholder="Ej: Residente"
+                />
 
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Autorizado por
-                  </label>
-
-                  <input
-                    value={autorizadoPor}
-                    onChange={(e) => setAutorizadoPor(e.target.value)}
-                    placeholder="Ej: Residente"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Patente
-                  </label>
-
-                  <input
-                    value={patente}
-                    onChange={(e) => setPatente(e.target.value)}
-                    placeholder="Ej: AB-CD-12"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
+                <Campo
+                  label="Patente"
+                  value={patente}
+                  onChange={setPatente}
+                  placeholder="Ej: AB-CD-12"
+                />
               </div>
 
               <div className="mt-4">
@@ -445,8 +423,8 @@ export default function VisitasPage() {
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1100px] border-collapse">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full min-w-[1050px] border-collapse">
                     <thead className="bg-[#0B1F3A] text-white">
                       <tr>
                         <th className="px-5 py-4 text-left text-xs font-black uppercase">
@@ -501,9 +479,7 @@ export default function VisitasPage() {
                             </td>
 
                             <td className="px-5 py-4 text-sm font-bold text-slate-600">
-                              {obtenerNumeroDepartamento(
-                                visita.departamento_id
-                              )}
+                              {obtenerNumeroDepartamento(visita.departamento_id)}
                             </td>
 
                             <td className="px-5 py-4 text-sm text-slate-500">
@@ -537,7 +513,7 @@ export default function VisitasPage() {
                                     onClick={() => marcarSalida(visita)}
                                     className="rounded-lg bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100"
                                   >
-                                    Marcar salida
+                                    Salida
                                   </button>
                                 )}
 
@@ -575,5 +551,29 @@ export default function VisitasPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+type CampoProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+};
+
+function Campo({ label, value, onChange, placeholder = "" }: CampoProps) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+        {label}
+      </label>
+
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+      />
+    </div>
   );
 }

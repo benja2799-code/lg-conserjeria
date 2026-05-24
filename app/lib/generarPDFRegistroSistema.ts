@@ -133,9 +133,10 @@ export function generarPDFRegistroSistema(registros: RegistroSistemaPDF[]) {
 
           y += 8;
           doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
         }
 
-        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(220, 220, 220);
         doc.rect(margen, y, 182, 9, "S");
 
         doc.setTextColor(40, 40, 40);
@@ -143,7 +144,11 @@ export function generarPDFRegistroSistema(registros: RegistroSistemaPDF[]) {
         doc.text(formatearFecha(registro.created_at), margen + 2, y + 6);
         doc.text(cortarTexto(registro.accion, 22), margen + 36, y + 6);
         doc.text(cortarTexto(registro.descripcion, 55), margen + 72, y + 6);
-        doc.text(cortarTexto(registro.usuario_nombre || "-", 18), margen + 150, y + 6);
+        doc.text(
+          cortarTexto(registro.usuario_nombre || "-", 18),
+          margen + 150,
+          y + 6
+        );
 
         y += 9;
       }

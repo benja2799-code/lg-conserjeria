@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
-import StatsCard from "../components/StatsCard";
 import { supabase } from "../lib/supabase";
 import { generarPDFRegistroSistema } from "../lib/generarPDFRegistroSistema";
 
@@ -21,18 +20,27 @@ type RegistroSistema = {
 
 export default function RegistroGeneralPage() {
   const [registros, setRegistros] = useState<RegistroSistema[]>([]);
-  const [busqueda, setBusqueda] = useState("");
-  const [moduloFiltro, setModuloFiltro] = useState("TODOS");
-  const [fechaDesde, setFechaDesde] = useState("");
-  const [fechaHasta, setFechaHasta] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [descargando, setDescargando] = useState(false);
 
   const cargarRegistros = async () => {
     setCargando(true);
 
     const { data, error } = await supabase
       .from("registro_sistema")
-      .select("*")
+      .select(
+        `
+        id,
+        modulo,
+        accion,
+        descripcion,
+        usuario_nombre,
+        usuario_rol,
+        referencia_id,
+        referencia_tabla,
+        created_at
+      `
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -54,260 +62,152 @@ export default function RegistroGeneralPage() {
     return Array.from(new Set(registros.map((registro) => registro.modulo))).sort();
   }, [registros]);
 
-  const registrosFiltrados = useMemo(() => {
-    return registros.filter((registro) => {
-      const texto = busqueda.toLowerCase();
+  const descargarPDF = async () => {
+    if (registros.length === 0) {
+      alert("No hay registros para descargar.");
+      return;
+    }
 
-      const coincideBusqueda =
-        registro.modulo.toLowerCase().includes(texto) ||
-        registro.accion.toLowerCase().includes(texto) ||
-        registro.descripcion.toLowerCase().includes(texto) ||
-        (registro.usuario_nombre || "").toLowerCase().includes(texto) ||
-        (registro.usuario_rol || "").toLowerCase().includes(texto) ||
-        (registro.referencia_tabla || "").toLowerCase().includes(texto);
+    setDescargando(true);
 
-      const coincideModulo =
-        moduloFiltro === "TODOS" || registro.modulo === moduloFiltro;
+    try {
+      generarPDFRegistroSistema(registros);
+    } catch (error) {
+      console.error("Error al descargar PDF:", error);
+      alert("No se pudo descargar el PDF.");
+    }
 
-      const fechaRegistro = new Date(registro.created_at);
-
-      const coincideDesde = fechaDesde
-        ? fechaRegistro >= new Date(`${fechaDesde}T00:00:00`)
-        : true;
-
-      const coincideHasta = fechaHasta
-        ? fechaRegistro <= new Date(`${fechaHasta}T23:59:59`)
-        : true;
-
-      return coincideBusqueda && coincideModulo && coincideDesde && coincideHasta;
-    });
-  }, [registros, busqueda, moduloFiltro, fechaDesde, fechaHasta]);
-
-  const contarModulo = (modulo: string) => {
-    return registrosFiltrados.filter((registro) => registro.modulo === modulo)
-      .length;
+    setDescargando(false);
   };
 
-  const limpiarFiltros = () => {
-    setBusqueda("");
-    setModuloFiltro("TODOS");
-    setFechaDesde("");
-    setFechaHasta("");
-  };
-
-  const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleString("es-CL", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const ultimaActualizacion = registros[0]?.created_at
+    ? new Date(registros[0].created_at).toLocaleString("es-CL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Sin registros";
 
   return (
     <main className="min-h-screen bg-[#F4F6F9] text-[#0B1220]">
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <section className="flex min-h-screen flex-1 flex-col">
+        <section className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
           <Header />
 
-          <div className="flex-1 p-8">
-            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
-                  Registro operacional
-                </p>
+          <div className="flex min-w-0 flex-1 items-center justify-center overflow-x-hidden p-8">
+            <section className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+                <div>
+                  <p className="mb-3 text-xs font-black uppercase tracking-[0.28em] text-[#D9A520]">
+                    Auditoría del sistema
+                  </p>
 
-                <h1 className="text-4xl font-black text-[#0B1F3A]">
-                  Registro general
-                </h1>
+                  <h1 className="text-4xl font-black leading-tight text-[#0B1F3A] md:text-5xl">
+                    Registro general
+                  </h1>
 
-                <p className="mt-2 max-w-2xl text-slate-500">
-                  Historial completo de movimientos registrados en el sistema.
-                </p>
+                  <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-500">
+                    Descarga un informe PDF con el historial completo de acciones
+                    registradas en el sistema: visitas, encomiendas, novedades,
+                    reservas, asistencia, departamentos y demás módulos conectados.
+                  </p>
 
-                <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
-              </div>
+                  <div className="mt-6 h-1 w-20 rounded-full bg-[#D9A520]" />
 
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={cargarRegistros}
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-[#0B1F3A] shadow-sm transition hover:bg-slate-50"
-                >
-                  Actualizar
-                </button>
+                  <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="rounded-2xl bg-[#F8FAFC] p-5">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                        Total registros
+                      </p>
+                      <p className="mt-2 text-3xl font-black text-[#0B1F3A]">
+                        {cargando ? "..." : registros.length}
+                      </p>
+                    </div>
 
-                <button
-                  onClick={() => generarPDFRegistroSistema(registrosFiltrados)}
-                  className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
-                >
-                  Descargar registro general
-                </button>
-              </div>
-            </div>
+                    <div className="rounded-2xl bg-[#F8FAFC] p-5">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                        Módulos
+                      </p>
+                      <p className="mt-2 text-3xl font-black text-[#0B1F3A]">
+                        {cargando ? "..." : modulosDisponibles.length}
+                      </p>
+                    </div>
 
-            <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4 xl:grid-cols-6">
-              <StatsCard
-                title="Total"
-                value={String(registrosFiltrados.length)}
-                description="Registros filtrados"
-                highlighted
-              />
+                    <div className="rounded-2xl bg-[#F8FAFC] p-5">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                        Último registro
+                      </p>
+                      <p className="mt-2 text-sm font-bold leading-relaxed text-[#0B1F3A]">
+                        {ultimaActualizacion}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-              {modulosDisponibles.slice(0, 5).map((modulo) => (
-                <StatsCard
-                  key={modulo}
-                  title={modulo}
-                  value={String(contarModulo(modulo))}
-                  description="Movimientos"
-                />
-              ))}
-            </div>
+                <div className="rounded-[1.7rem] bg-[#0B1F3A] p-7 text-white shadow-xl">
+                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-3xl">
+                    📄
+                  </div>
 
-            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_240px_170px_170px_140px]">
-                <input
-                  type="text"
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  placeholder="Buscar por módulo, acción, descripción, usuario o rol..."
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
-                />
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-[#D9A520]">
+                    Informe PDF
+                  </p>
 
-                <select
-                  value={moduloFiltro}
-                  onChange={(e) => setModuloFiltro(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
-                >
-                  <option value="TODOS">Todos los módulos</option>
+                  <h2 className="text-2xl font-black">
+                    Descargar registro completo
+                  </h2>
 
-                  {modulosDisponibles.map((modulo) => (
-                    <option key={modulo} value={modulo}>
-                      {modulo}
-                    </option>
-                  ))}
-                </select>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                    El archivo se generará con todos los movimientos guardados en
+                    la tabla de auditoría del sistema.
+                  </p>
 
-                <input
-                  type="date"
-                  value={fechaDesde}
-                  onChange={(e) => setFechaDesde(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
-                />
+                  <button
+                    onClick={descargarPDF}
+                    disabled={cargando || descargando || registros.length === 0}
+                    className="mt-7 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#D9A520] px-6 py-4 text-sm font-black text-[#0B1F3A] shadow-lg transition hover:scale-[1.02] hover:bg-[#E8B93A] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span>{descargando ? "Generando PDF..." : "Descargar PDF"}</span>
+                    <span className="text-lg">↓</span>
+                  </button>
 
-                <input
-                  type="date"
-                  value={fechaHasta}
-                  onChange={(e) => setFechaHasta(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
-                />
+                  <button
+                    onClick={cargarRegistros}
+                    disabled={cargando}
+                    className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {cargando ? "Actualizando..." : "Actualizar registros"}
+                  </button>
 
-                <button
-                  onClick={limpiarFiltros}
-                  className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
-                >
-                  Limpiar
-                </button>
-              </div>
-            </div>
+                  <div className="mt-6 border-t border-white/10 pt-5">
+                    <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
+                      Módulos detectados
+                    </p>
 
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-500">
-                Resultados encontrados: {registrosFiltrados.length}
-              </p>
-
-              {cargando && (
-                <p className="text-sm font-bold text-[#0B1F3A]">
-                  Cargando registros...
-                </p>
-              )}
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1150px] border-collapse">
-                  <thead className="bg-[#0B1F3A] text-white">
-                    <tr>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                        Fecha
-                      </th>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                        Módulo
-                      </th>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                        Acción
-                      </th>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                        Descripción
-                      </th>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                        Usuario
-                      </th>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                        Rol
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {cargando ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-5 py-10 text-center font-bold text-[#0B1F3A]"
-                        >
-                          Cargando registro general...
-                        </td>
-                      </tr>
-                    ) : registrosFiltrados.length > 0 ? (
-                      registrosFiltrados.map((registro) => (
-                        <tr
-                          key={registro.id}
-                          className="border-b border-slate-100 hover:bg-[#F8FAFC]"
-                        >
-                          <td className="px-5 py-4 text-sm text-slate-500">
-                            {formatearFecha(registro.created_at)}
-                          </td>
-
-                          <td className="px-5 py-4">
-                            <span className="rounded-full bg-[#F4F6F9] px-3 py-1 text-xs font-black text-[#0B1F3A]">
-                              {registro.modulo}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-4 text-sm font-bold text-[#0B1F3A]">
-                            {registro.accion}
-                          </td>
-
-                          <td className="max-w-[520px] px-5 py-4 text-sm leading-relaxed text-slate-600">
-                            {registro.descripcion}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm text-slate-500">
-                            {registro.usuario_nombre || "-"}
-                          </td>
-
-                          <td className="px-5 py-4 text-sm text-slate-500">
-                            {registro.usuario_rol || "-"}
-                          </td>
-                        </tr>
-                      ))
+                    {modulosDisponibles.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {modulosDisponibles.map((modulo) => (
+                          <span
+                            key={modulo}
+                            className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-slate-100"
+                          >
+                            {modulo}
+                          </span>
+                        ))}
+                      </div>
                     ) : (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-5 py-10 text-center text-slate-500"
-                        >
-                          No hay registros para los filtros seleccionados.
-                        </td>
-                      </tr>
+                      <p className="text-sm text-slate-400">
+                        Aún no hay módulos registrados.
+                      </p>
                     )}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
-            </div>
+            </section>
           </div>
 
           <footer className="mt-auto flex items-center justify-between bg-[#0B1F3A] px-8 py-4 text-sm text-white">
