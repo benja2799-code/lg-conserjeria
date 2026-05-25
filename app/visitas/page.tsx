@@ -21,9 +21,10 @@ type Visita = {
   autorizado_por: string | null;
   patente: string | null;
   observacion: string | null;
-  estado: string;
-  hora_ingreso: string;
+  estado: string | null;
+  hora_ingreso: string | null;
   hora_salida: string | null;
+  created_at?: string | null;
 };
 
 export default function VisitasPage() {
@@ -31,6 +32,7 @@ export default function VisitasPage() {
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   const [nombreVisitante, setNombreVisitante] = useState("");
   const [rutVisitante, setRutVisitante] = useState("");
@@ -96,6 +98,11 @@ export default function VisitasPage() {
     setObservacion("");
   };
 
+  const cerrarFormulario = () => {
+    limpiarFormulario();
+    setMostrarFormulario(false);
+  };
+
   const registrarVisita = async () => {
     if (!nombreVisitante.trim()) {
       alert("Debes ingresar el nombre del visitante.");
@@ -134,13 +141,14 @@ export default function VisitasPage() {
 
     await registrarEvento({
       modulo: "Visitas",
-      accion: "Crear visita",
-      descripcion: `Se registró la visita de ${nombreVisitante.trim()} para el departamento ${departamentoNumero}.`,
+      accion: "Registrar visita",
+      descripcion: `Se registró el ingreso de ${nombreVisitante.trim()} al departamento ${departamentoNumero}.`,
       referencia_id: data?.id || null,
       referencia_tabla: "visitas",
     });
 
     limpiarFormulario();
+    setMostrarFormulario(false);
     await cargarVisitas();
 
     alert("Visita registrada correctamente.");
@@ -180,7 +188,7 @@ export default function VisitasPage() {
 
   const eliminarVisita = async (visita: Visita) => {
     const confirmar = confirm(
-      `¿Deseas eliminar el registro de ${visita.nombre_visitante}?`
+      `¿Deseas eliminar el registro de visita de ${visita.nombre_visitante}?`
     );
 
     if (!confirmar) return;
@@ -228,13 +236,13 @@ export default function VisitasPage() {
       ).toLowerCase();
 
       return (
-        visita.nombre_visitante.toLowerCase().includes(texto) ||
+        (visita.nombre_visitante || "").toLowerCase().includes(texto) ||
         (visita.rut_visitante || "").toLowerCase().includes(texto) ||
         (visita.motivo || "").toLowerCase().includes(texto) ||
         (visita.autorizado_por || "").toLowerCase().includes(texto) ||
         (visita.patente || "").toLowerCase().includes(texto) ||
         (visita.observacion || "").toLowerCase().includes(texto) ||
-        visita.estado.toLowerCase().includes(texto) ||
+        (visita.estado || "").toLowerCase().includes(texto) ||
         numeroDepto.includes(texto)
       );
     });
@@ -263,25 +271,30 @@ export default function VisitasPage() {
                 </h1>
 
                 <p className="mt-2 max-w-2xl text-slate-500">
-                  Registra el ingreso, salida y control de visitantes del edificio.
+                  Registra ingresos, salidas y control de visitantes del edificio.
                 </p>
 
                 <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
               </div>
 
               <button
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="w-fit rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+                type="button"
+                onClick={() => setMostrarFormulario((actual) => !actual)}
+                className={`w-fit rounded-xl px-5 py-3 text-sm font-bold shadow-md transition ${
+                  mostrarFormulario
+                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                    : "bg-[#0B1F3A] text-white hover:bg-[#163B73]"
+                }`}
               >
-                + Nueva visita
+                {mostrarFormulario ? "Cerrar formulario" : "+ Nueva visita"}
               </button>
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
               <StatsCard
-                title="Total visitas"
+                title="Total"
                 value={String(visitas.length)}
-                description="Registros generales"
+                description="Visitas registradas"
                 highlighted
               />
 
@@ -304,113 +317,127 @@ export default function VisitasPage() {
               />
             </div>
 
-            <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-5">
-                <h2 className="text-2xl font-black text-[#0B1F3A]">
-                  Registrar nueva visita
-                </h2>
+            {mostrarFormulario && (
+              <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black text-[#0B1F3A]">
+                      Nueva visita
+                    </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Cada ingreso quedará registrado automáticamente en el Registro general.
-                </p>
-              </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Completa los datos para registrar un nuevo ingreso.
+                    </p>
+                  </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Campo
-                  label="Nombre visitante"
-                  value={nombreVisitante}
-                  onChange={setNombreVisitante}
-                  placeholder="Ej: Juan Pérez"
-                />
-
-                <Campo
-                  label="RUT visitante"
-                  value={rutVisitante}
-                  onChange={setRutVisitante}
-                  placeholder="Ej: 12.345.678-9"
-                />
-
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Departamento
-                  </label>
-
-                  <select
-                    value={departamentoId}
-                    onChange={(e) => setDepartamentoId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                  <button
+                    type="button"
+                    onClick={cerrarFormulario}
+                    className="w-fit rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-2 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
                   >
-                    <option value="">Seleccionar departamento</option>
-
-                    {departamentos.map((departamento) => (
-                      <option key={departamento.id} value={departamento.id}>
-                        Depto {departamento.numero}
-                      </option>
-                    ))}
-                  </select>
+                    Cancelar
+                  </button>
                 </div>
 
-                <Campo
-                  label="Motivo"
-                  value={motivo}
-                  onChange={setMotivo}
-                  placeholder="Ej: Visita familiar"
-                />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <Campo
+                    label="Nombre visitante"
+                    value={nombreVisitante}
+                    onChange={setNombreVisitante}
+                    placeholder="Ej: Juan Pérez"
+                  />
 
-                <Campo
-                  label="Autorizado por"
-                  value={autorizadoPor}
-                  onChange={setAutorizadoPor}
-                  placeholder="Ej: Residente"
-                />
+                  <Campo
+                    label="RUT visitante"
+                    value={rutVisitante}
+                    onChange={setRutVisitante}
+                    placeholder="Ej: 12.345.678-9"
+                  />
 
-                <Campo
-                  label="Patente"
-                  value={patente}
-                  onChange={setPatente}
-                  placeholder="Ej: AB-CD-12"
-                />
-              </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                      Departamento
+                    </label>
 
-              <div className="mt-4">
-                <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                  Observación
-                </label>
+                    <select
+                      value={departamentoId}
+                      onChange={(e) => setDepartamentoId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                    >
+                      <option value="">Seleccionar departamento</option>
 
-                <textarea
-                  value={observacion}
-                  onChange={(e) => setObservacion(e.target.value)}
-                  placeholder="Ej: Ingresa con encomienda, autorización telefónica, etc."
-                  className="min-h-[90px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                />
-              </div>
+                      {departamentos.map((departamento) => (
+                        <option key={departamento.id} value={departamento.id}>
+                          Depto {departamento.numero}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  onClick={registrarVisita}
-                  className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
-                >
-                  Registrar visita
-                </button>
+                  <Campo
+                    label="Motivo"
+                    value={motivo}
+                    onChange={setMotivo}
+                    placeholder="Ej: Visita familiar"
+                  />
 
-                <button
-                  onClick={limpiarFormulario}
-                  className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
-                >
-                  Limpiar
-                </button>
-              </div>
-            </section>
+                  <Campo
+                    label="Autorizado por"
+                    value={autorizadoPor}
+                    onChange={setAutorizadoPor}
+                    placeholder="Ej: Residente"
+                  />
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <Campo
+                    label="Patente"
+                    value={patente}
+                    onChange={setPatente}
+                    placeholder="Ej: AB-CD-12"
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Observación
+                  </label>
+
+                  <textarea
+                    value={observacion}
+                    onChange={(e) => setObservacion(e.target.value)}
+                    placeholder="Ej: Ingresa con encomienda, autorización telefónica, etc."
+                    className="min-h-[90px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                  />
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={registrarVisita}
+                    className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+                  >
+                    Guardar visita
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={limpiarFormulario}
+                    className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </section>
+            )}
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-[#0B1F3A]">
-                    Registros de visitas
+                  <h2 className="text-xl font-black text-[#0B1F3A]">
+                    Listado de visitas
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Listado de ingresos, salidas y visitantes activos.
+                  <p className="mt-1 text-xs text-slate-500">
+                    Visitas registradas actualmente en el sistema.
                   </p>
                 </div>
 
@@ -418,128 +445,141 @@ export default function VisitasPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar visita..."
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520] md:w-80"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#D9A520] md:w-72"
                 />
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full min-w-[1050px] border-collapse">
-                    <thead className="bg-[#0B1F3A] text-white">
+                <table className="w-full table-fixed border-collapse text-sm">
+                  <thead className="bg-[#0B1F3A] text-white">
+                    <tr>
+                      <th className="w-[17%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Visitante
+                      </th>
+                      <th className="w-[12%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        RUT
+                      </th>
+                      <th className="w-[9%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Depto
+                      </th>
+                      <th className="w-[17%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Motivo
+                      </th>
+                      <th className="w-[15%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Ingreso
+                      </th>
+                      <th className="w-[13%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Estado
+                      </th>
+                      <th className="w-[17%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {cargando ? (
                       <tr>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Visitante
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          RUT
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Depto
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Motivo
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Ingreso
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Salida
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Estado
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Acciones
-                        </th>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-sm font-bold text-[#0B1F3A]"
+                        >
+                          Cargando visitas...
+                        </td>
                       </tr>
-                    </thead>
-
-                    <tbody>
-                      {cargando ? (
-                        <tr>
-                          <td
-                            colSpan={8}
-                            className="px-5 py-10 text-center font-bold text-[#0B1F3A]"
-                          >
-                            Cargando visitas...
+                    ) : visitasFiltradas.length > 0 ? (
+                      visitasFiltradas.map((visita) => (
+                        <tr
+                          key={visita.id}
+                          className="border-b border-slate-100 hover:bg-[#F8FAFC]"
+                        >
+                          <td className="px-3 py-3 align-top">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-black text-[#0B1F3A]">
+                                {visita.nombre_visitante}
+                              </p>
+                              <p className="truncate text-[11px] text-slate-400">
+                                Patente: {visita.patente || "-"}
+                              </p>
+                            </div>
                           </td>
-                        </tr>
-                      ) : visitasFiltradas.length > 0 ? (
-                        visitasFiltradas.map((visita) => (
-                          <tr
-                            key={visita.id}
-                            className="border-b border-slate-100 hover:bg-[#F8FAFC]"
-                          >
-                            <td className="px-5 py-4 font-bold text-[#0B1F3A]">
-                              {visita.nombre_visitante}
-                            </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-xs text-slate-500">
                               {visita.rut_visitante || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm font-bold text-slate-600">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-sm font-black text-[#0B1F3A]">
                               {obtenerNumeroDepartamento(visita.departamento_id)}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {visita.motivo || "-"}
-                            </td>
+                          <td className="px-3 py-3 align-top">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs text-slate-600">
+                                {visita.motivo || "-"}
+                              </p>
+                              <p className="truncate text-[11px] text-slate-400">
+                                Aut.: {visita.autorizado_por || "-"}
+                              </p>
+                            </div>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
+                          <td className="px-3 py-3 align-top">
+                            <p className="text-xs text-slate-500">
                               {formatearFecha(visita.hora_ingreso)}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {formatearFecha(visita.hora_salida)}
-                            </td>
+                          <td className="px-3 py-3 align-top">
+                            <span
+                              className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[10px] font-black ${
+                                visita.estado === "DENTRO"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {visita.estado || "-"}
+                            </span>
+                          </td>
 
-                            <td className="px-5 py-4">
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-black ${
-                                  visita.estado === "DENTRO"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-slate-100 text-slate-500"
-                                }`}
-                              >
-                                {visita.estado}
-                              </span>
-                            </td>
-
-                            <td className="px-5 py-4">
-                              <div className="flex flex-wrap gap-2">
-                                {visita.estado === "DENTRO" && (
-                                  <button
-                                    onClick={() => marcarSalida(visita)}
-                                    className="rounded-lg bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100"
-                                  >
-                                    Salida
-                                  </button>
-                                )}
-
+                          <td className="px-3 py-3 align-top">
+                            <div className="flex flex-col gap-1.5">
+                              {visita.estado === "DENTRO" && (
                                 <button
-                                  onClick={() => eliminarVisita(visita)}
-                                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                                  type="button"
+                                  onClick={() => marcarSalida(visita)}
+                                  className="rounded-lg bg-green-50 px-2 py-1.5 text-[11px] font-bold text-green-700 transition hover:bg-green-100"
                                 >
-                                  Eliminar
+                                  Salida
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={8}
-                            className="px-5 py-10 text-center text-slate-500"
-                          >
-                            No se encontraron visitas.
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => eliminarVisita(visita)}
+                                className="rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-100"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-sm text-slate-500"
+                        >
+                          No se encontraron visitas.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>

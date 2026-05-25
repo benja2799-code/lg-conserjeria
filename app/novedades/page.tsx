@@ -21,6 +21,7 @@ export default function NovedadesPage() {
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   const [tipo, setTipo] = useState("OBSERVACION");
   const [titulo, setTitulo] = useState("");
@@ -57,6 +58,11 @@ export default function NovedadesPage() {
     setResponsable("");
   };
 
+  const cerrarFormulario = () => {
+    limpiarFormulario();
+    setMostrarFormulario(false);
+  };
+
   const registrarNovedad = async () => {
     if (!titulo.trim()) {
       alert("Debes ingresar un título.");
@@ -88,7 +94,7 @@ export default function NovedadesPage() {
       return;
     }
 
-    const evento = await registrarEvento({
+    await registrarEvento({
       modulo: "Novedades",
       accion: "Registrar novedad",
       descripcion: `Se registró una novedad tipo ${tipo}: ${titulo.trim()}.`,
@@ -96,9 +102,8 @@ export default function NovedadesPage() {
       referencia_tabla: "novedades",
     });
 
-    console.log("Evento novedad registrado:", evento);
-
     limpiarFormulario();
+    setMostrarFormulario(false);
     await cargarNovedades();
 
     alert("Novedad registrada correctamente.");
@@ -211,21 +216,35 @@ export default function NovedadesPage() {
           <Header />
 
           <div className="min-w-0 flex-1 overflow-x-hidden p-8">
-            <div className="mb-8">
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
-                Libro de turno
-              </p>
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
+                  Libro de turno
+                </p>
 
-              <h1 className="text-4xl font-black text-[#0B1F3A]">
-                Libro de novedades
-              </h1>
+                <h1 className="text-4xl font-black text-[#0B1F3A]">
+                  Libro de novedades
+                </h1>
 
-              <p className="mt-2 max-w-2xl text-slate-500">
-                Registra incidentes, observaciones, rondas y eventos relevantes
-                ocurridos durante el turno.
-              </p>
+                <p className="mt-2 max-w-2xl text-slate-500">
+                  Registra incidentes, observaciones, rondas y eventos relevantes
+                  ocurridos durante el turno.
+                </p>
 
-              <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+                <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMostrarFormulario((actual) => !actual)}
+                className={`w-fit rounded-xl px-5 py-3 text-sm font-bold shadow-md transition ${
+                  mostrarFormulario
+                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                    : "bg-[#0B1F3A] text-white hover:bg-[#163B73]"
+                }`}
+              >
+                {mostrarFormulario ? "Cerrar formulario" : "+ Nueva novedad"}
+              </button>
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
@@ -255,103 +274,106 @@ export default function NovedadesPage() {
               />
             </div>
 
-            <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-5">
-                <h2 className="text-2xl font-black text-[#0B1F3A]">
-                  Registrar novedad
-                </h2>
+            {mostrarFormulario && (
+              <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black text-[#0B1F3A]">
+                      Nueva novedad
+                    </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Cada novedad registrada quedará automáticamente en el Registro
-                  general del sistema.
-                </p>
-              </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Completa los datos para registrar un evento del turno.
+                    </p>
+                  </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Tipo
-                  </label>
-
-                  <select
-                    value={tipo}
-                    onChange={(e) => setTipo(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                  <button
+                    type="button"
+                    onClick={cerrarFormulario}
+                    className="w-fit rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-2 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
                   >
-                    <option value="OBSERVACION">Observación</option>
-                    <option value="INCIDENTE">Incidente</option>
-                    <option value="RONDA">Ronda</option>
-                    <option value="MANTENCION">Mantención</option>
-                    <option value="OTRO">Otro</option>
-                  </select>
+                    Cancelar
+                  </button>
                 </div>
 
-                <div className="xl:col-span-2">
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Título
-                  </label>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                      Tipo
+                    </label>
 
-                  <input
-                    value={titulo}
-                    onChange={(e) => setTitulo(e.target.value)}
-                    placeholder="Ej: Ruido en departamento, ronda nocturna, incidente en acceso"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  />
-                </div>
+                    <select
+                      value={tipo}
+                      onChange={(e) => setTipo(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                    >
+                      <option value="OBSERVACION">Observación</option>
+                      <option value="INCIDENTE">Incidente</option>
+                      <option value="RONDA">Ronda</option>
+                      <option value="MANTENCION">Mantención</option>
+                      <option value="OTRO">Otro</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Responsable
-                  </label>
+                  <div className="xl:col-span-2">
+                    <Campo
+                      label="Título"
+                      value={titulo}
+                      onChange={setTitulo}
+                      placeholder="Ej: Ronda nocturna, ruido, mantención"
+                    />
+                  </div>
 
-                  <input
+                  <Campo
+                    label="Responsable"
                     value={responsable}
-                    onChange={(e) => setResponsable(e.target.value)}
+                    onChange={setResponsable}
                     placeholder="Ej: Conserjería"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
                   />
                 </div>
-              </div>
 
-              <div className="mt-4">
-                <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                  Descripción
-                </label>
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Descripción
+                  </label>
 
-                <textarea
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Describe claramente lo ocurrido, hora aproximada, personas involucradas o acciones realizadas."
-                  className="min-h-[110px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                />
-              </div>
+                  <textarea
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Describe claramente lo ocurrido, hora aproximada, personas involucradas o acciones realizadas."
+                    className="min-h-[110px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                  />
+                </div>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  onClick={registrarNovedad}
-                  className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
-                >
-                  Registrar novedad
-                </button>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={registrarNovedad}
+                    className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+                  >
+                    Guardar novedad
+                  </button>
 
-                <button
-                  onClick={limpiarFormulario}
-                  className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
-                >
-                  Limpiar
-                </button>
-              </div>
-            </section>
+                  <button
+                    type="button"
+                    onClick={limpiarFormulario}
+                    className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </section>
+            )}
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-[#0B1F3A]">
-                    Registros de novedades
+                  <h2 className="text-xl font-black text-[#0B1F3A]">
+                    Listado de novedades
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Historial de eventos registrados durante los turnos.
+                  <p className="mt-1 text-xs text-slate-500">
+                    Eventos registrados actualmente en el sistema.
                   </p>
                 </div>
 
@@ -359,135 +381,139 @@ export default function NovedadesPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar novedad..."
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520] md:w-80"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#D9A520] md:w-72"
                 />
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full min-w-[1000px] border-collapse">
-                    <thead className="bg-[#0B1F3A] text-white">
+                <table className="w-full table-fixed border-collapse text-sm">
+                  <thead className="bg-[#0B1F3A] text-white">
+                    <tr>
+                      <th className="w-[15%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Fecha
+                      </th>
+                      <th className="w-[13%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Tipo
+                      </th>
+                      <th className="w-[20%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Título
+                      </th>
+                      <th className="w-[25%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Descripción
+                      </th>
+                      <th className="w-[12%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Estado
+                      </th>
+                      <th className="w-[15%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {cargando ? (
                       <tr>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Fecha
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Tipo
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Título
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Descripción
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Responsable
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Estado
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Acciones
-                        </th>
+                        <td
+                          colSpan={6}
+                          className="px-4 py-8 text-center text-sm font-bold text-[#0B1F3A]"
+                        >
+                          Cargando novedades...
+                        </td>
                       </tr>
-                    </thead>
-
-                    <tbody>
-                      {cargando ? (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="px-5 py-10 text-center font-bold text-[#0B1F3A]"
-                          >
-                            Cargando novedades...
-                          </td>
-                        </tr>
-                      ) : novedadesFiltradas.length > 0 ? (
-                        novedadesFiltradas.map((novedad) => (
-                          <tr
-                            key={novedad.id}
-                            className="border-b border-slate-100 hover:bg-[#F8FAFC]"
-                          >
-                            <td className="px-5 py-4 text-sm text-slate-500">
+                    ) : novedadesFiltradas.length > 0 ? (
+                      novedadesFiltradas.map((novedad) => (
+                        <tr
+                          key={novedad.id}
+                          className="border-b border-slate-100 hover:bg-[#F8FAFC]"
+                        >
+                          <td className="px-3 py-3 align-top">
+                            <p className="text-xs text-slate-500">
                               {formatearFecha(novedad.created_at)}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4">
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-black ${
-                                  novedad.tipo === "INCIDENTE"
-                                    ? "bg-red-100 text-red-700"
-                                    : novedad.tipo === "RONDA"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : novedad.tipo === "MANTENCION"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-slate-100 text-slate-600"
-                                }`}
-                              >
-                                {novedad.tipo || "-"}
-                              </span>
-                            </td>
+                          <td className="px-3 py-3 align-top">
+                            <span
+                              className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[10px] font-black ${
+                                novedad.tipo === "INCIDENTE"
+                                  ? "bg-red-100 text-red-700"
+                                  : novedad.tipo === "RONDA"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : novedad.tipo === "MANTENCION"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {novedad.tipo || "-"}
+                            </span>
+                          </td>
 
-                            <td className="px-5 py-4 font-bold text-[#0B1F3A]">
-                              {novedad.titulo || "-"}
-                            </td>
+                          <td className="px-3 py-3 align-top">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-black text-[#0B1F3A]">
+                                {novedad.titulo || "-"}
+                              </p>
+                              <p className="truncate text-[11px] text-slate-400">
+                                Resp.: {novedad.responsable || "-"}
+                              </p>
+                            </div>
+                          </td>
 
-                            <td className="max-w-[360px] px-5 py-4 text-sm leading-relaxed text-slate-500">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-xs text-slate-600">
                               {novedad.descripcion || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {novedad.responsable || "-"}
-                            </td>
+                          <td className="px-3 py-3 align-top">
+                            <span
+                              className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[10px] font-black ${
+                                novedad.estado === "ABIERTA"
+                                  ? "bg-green-100 text-green-700"
+                                  : novedad.estado === "CERRADA"
+                                  ? "bg-slate-100 text-slate-500"
+                                  : "bg-blue-50 text-blue-700"
+                              }`}
+                            >
+                              {novedad.estado || "-"}
+                            </span>
+                          </td>
 
-                            <td className="px-5 py-4">
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-black ${
-                                  novedad.estado === "ABIERTA"
-                                    ? "bg-green-100 text-green-700"
-                                    : novedad.estado === "CERRADA"
-                                    ? "bg-slate-100 text-slate-500"
-                                    : "bg-blue-50 text-blue-700"
-                                }`}
-                              >
-                                {novedad.estado || "-"}
-                              </span>
-                            </td>
-
-                            <td className="px-5 py-4">
-                              <div className="flex flex-wrap gap-2">
-                                {novedad.estado === "ABIERTA" && (
-                                  <button
-                                    onClick={() => cerrarNovedad(novedad)}
-                                    className="rounded-lg bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100"
-                                  >
-                                    Cerrar
-                                  </button>
-                                )}
-
+                          <td className="px-3 py-3 align-top">
+                            <div className="flex flex-col gap-1.5">
+                              {novedad.estado === "ABIERTA" && (
                                 <button
-                                  onClick={() => eliminarNovedad(novedad)}
-                                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                                  type="button"
+                                  onClick={() => cerrarNovedad(novedad)}
+                                  className="rounded-lg bg-green-50 px-2 py-1.5 text-[11px] font-bold text-green-700 transition hover:bg-green-100"
                                 >
-                                  Eliminar
+                                  Cerrar
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="px-5 py-10 text-center text-slate-500"
-                          >
-                            No se encontraron novedades.
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => eliminarNovedad(novedad)}
+                                className="rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-100"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-4 py-8 text-center text-sm text-slate-500"
+                        >
+                          No se encontraron novedades.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>
@@ -499,5 +525,29 @@ export default function NovedadesPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+type CampoProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+};
+
+function Campo({ label, value, onChange, placeholder = "" }: CampoProps) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+        {label}
+      </label>
+
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+      />
+    </div>
   );
 }

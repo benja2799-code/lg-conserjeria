@@ -24,6 +24,7 @@ export default function EncomiendasPage() {
   const [encomiendas, setEncomiendas] = useState<Encomienda[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   const [departamentoNumero, setDepartamentoNumero] = useState("");
   const [destinatario, setDestinatario] = useState("");
@@ -64,6 +65,11 @@ export default function EncomiendasPage() {
     setObservacion("");
   };
 
+  const cerrarFormulario = () => {
+    limpiarFormulario();
+    setMostrarFormulario(false);
+  };
+
   const registrarEncomienda = async () => {
     if (!departamentoNumero.trim()) {
       alert("Debes ingresar el número de departamento.");
@@ -96,7 +102,7 @@ export default function EncomiendasPage() {
       return;
     }
 
-    const evento = await registrarEvento({
+    await registrarEvento({
       modulo: "Encomiendas",
       accion: "Registrar encomienda",
       descripcion: `Se registró una encomienda para el departamento ${departamentoNumero.trim()}, destinatario ${destinatario.trim()}.`,
@@ -104,9 +110,8 @@ export default function EncomiendasPage() {
       referencia_tabla: "encomiendas",
     });
 
-    console.log("Evento encomienda registrado:", evento);
-
     limpiarFormulario();
+    setMostrarFormulario(false);
     await cargarEncomiendas();
 
     alert("Encomienda registrada correctamente.");
@@ -225,6 +230,10 @@ export default function EncomiendasPage() {
     (encomienda) => encomienda.estado === "ENTREGADA"
   );
 
+  const encomiendasConEmpresa = encomiendas.filter(
+    (encomienda) => encomienda.empresa && encomienda.empresa.trim() !== ""
+  );
+
   return (
     <main className="min-h-screen bg-[#F4F6F9] text-[#0B1220]">
       <div className="flex min-h-screen">
@@ -245,17 +254,22 @@ export default function EncomiendasPage() {
                 </h1>
 
                 <p className="mt-2 max-w-2xl text-slate-500">
-                  Registra la recepción, entrega y seguimiento de encomiendas del edificio.
+                  Administra encomiendas recibidas, pendientes y entregadas.
                 </p>
 
                 <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
               </div>
 
               <button
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="w-fit rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+                type="button"
+                onClick={() => setMostrarFormulario((actual) => !actual)}
+                className={`w-fit rounded-xl px-5 py-3 text-sm font-bold shadow-md transition ${
+                  mostrarFormulario
+                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                    : "bg-[#0B1F3A] text-white hover:bg-[#163B73]"
+                }`}
               >
-                + Nueva encomienda
+                {mostrarFormulario ? "Cerrar formulario" : "+ Nueva encomienda"}
               </button>
             </div>
 
@@ -263,7 +277,7 @@ export default function EncomiendasPage() {
               <StatsCard
                 title="Total"
                 value={String(encomiendas.length)}
-                description="Registros generales"
+                description="Encomiendas registradas"
                 highlighted
               />
 
@@ -276,103 +290,117 @@ export default function EncomiendasPage() {
               <StatsCard
                 title="Entregadas"
                 value={String(encomiendasEntregadas.length)}
-                description="Cerradas"
+                description="Retiradas"
               />
 
               <StatsCard
-                title="Resultado"
-                value={String(encomiendasFiltradas.length)}
-                description="Registros filtrados"
+                title="Con empresa"
+                value={String(encomiendasConEmpresa.length)}
+                description="Courier registrado"
               />
             </div>
 
-            <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-5">
-                <h2 className="text-2xl font-black text-[#0B1F3A]">
-                  Registrar encomienda
-                </h2>
+            {mostrarFormulario && (
+              <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black text-[#0B1F3A]">
+                      Nueva encomienda
+                    </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Cada recepción quedará registrada automáticamente en el Registro general.
-                </p>
-              </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Completa los datos para registrar una nueva encomienda.
+                    </p>
+                  </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Campo
-                  label="Departamento"
-                  value={departamentoNumero}
-                  onChange={setDepartamentoNumero}
-                  placeholder="Ej: 1204"
-                />
+                  <button
+                    type="button"
+                    onClick={cerrarFormulario}
+                    className="w-fit rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-2 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
+                  >
+                    Cancelar
+                  </button>
+                </div>
 
-                <Campo
-                  label="Destinatario"
-                  value={destinatario}
-                  onChange={setDestinatario}
-                  placeholder="Ej: Juan Pérez"
-                />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <Campo
+                    label="Departamento"
+                    value={departamentoNumero}
+                    onChange={setDepartamentoNumero}
+                    placeholder="Ej: 1204"
+                  />
 
-                <Campo
-                  label="Empresa / courier"
-                  value={empresa}
-                  onChange={setEmpresa}
-                  placeholder="Ej: Chilexpress, Starken, Mercado Libre"
-                />
+                  <Campo
+                    label="Destinatario"
+                    value={destinatario}
+                    onChange={setDestinatario}
+                    placeholder="Ej: Juan Pérez"
+                  />
 
-                <Campo
-                  label="Descripción"
-                  value={descripcion}
-                  onChange={setDescripcion}
-                  placeholder="Ej: Caja mediana, sobre, paquete pequeño"
-                />
+                  <Campo
+                    label="Empresa / courier"
+                    value={empresa}
+                    onChange={setEmpresa}
+                    placeholder="Ej: Chilexpress, Starken"
+                  />
 
-                <Campo
-                  label="Recibido por"
-                  value={recibidoPor}
-                  onChange={setRecibidoPor}
-                  placeholder="Ej: Conserjería"
-                />
-              </div>
+                  <Campo
+                    label="Descripción"
+                    value={descripcion}
+                    onChange={setDescripcion}
+                    placeholder="Ej: Caja mediana, sobre, paquete"
+                  />
 
-              <div className="mt-4">
-                <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                  Observación
-                </label>
+                  <Campo
+                    label="Recibido por"
+                    value={recibidoPor}
+                    onChange={setRecibidoPor}
+                    placeholder="Ej: Conserjería"
+                  />
+                </div>
 
-                <textarea
-                  value={observacion}
-                  onChange={(e) => setObservacion(e.target.value)}
-                  placeholder="Ej: Paquete frágil, se avisa por teléfono, requiere firma, etc."
-                  className="min-h-[90px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                />
-              </div>
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                    Observación
+                  </label>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  onClick={registrarEncomienda}
-                  className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
-                >
-                  Registrar encomienda
-                </button>
+                  <textarea
+                    value={observacion}
+                    onChange={(e) => setObservacion(e.target.value)}
+                    placeholder="Ej: Paquete frágil, se avisó al residente, requiere firma, etc."
+                    className="min-h-[90px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                  />
+                </div>
 
-                <button
-                  onClick={limpiarFormulario}
-                  className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
-                >
-                  Limpiar
-                </button>
-              </div>
-            </section>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={registrarEncomienda}
+                    className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+                  >
+                    Guardar encomienda
+                  </button>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={limpiarFormulario}
+                    className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </section>
+            )}
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-[#0B1F3A]">
-                    Registro de encomiendas
+                  <h2 className="text-xl font-black text-[#0B1F3A]">
+                    Listado de encomiendas
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Listado de encomiendas pendientes y entregadas.
+                  <p className="mt-1 text-xs text-slate-500">
+                    Encomiendas registradas actualmente en el sistema.
                   </p>
                 </div>
 
@@ -380,85 +408,93 @@ export default function EncomiendasPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar encomienda..."
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520] md:w-80"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#D9A520] md:w-72"
                 />
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full min-w-[1050px] border-collapse">
-                    <thead className="bg-[#0B1F3A] text-white">
+                <table className="w-full table-fixed border-collapse text-sm">
+                  <thead className="bg-[#0B1F3A] text-white">
+                    <tr>
+                      <th className="w-[13%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Fecha
+                      </th>
+                      <th className="w-[9%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Depto
+                      </th>
+                      <th className="w-[17%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Destinatario
+                      </th>
+                      <th className="w-[16%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Empresa
+                      </th>
+                      <th className="w-[19%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Descripción
+                      </th>
+                      <th className="w-[13%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Estado
+                      </th>
+                      <th className="w-[13%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {cargando ? (
                       <tr>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Fecha
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Depto
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Destinatario
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Empresa
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Descripción
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Entregado a
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Estado
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Acciones
-                        </th>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-sm font-bold text-[#0B1F3A]"
+                        >
+                          Cargando encomiendas...
+                        </td>
                       </tr>
-                    </thead>
-
-                    <tbody>
-                      {cargando ? (
-                        <tr>
-                          <td
-                            colSpan={8}
-                            className="px-5 py-10 text-center font-bold text-[#0B1F3A]"
-                          >
-                            Cargando encomiendas...
-                          </td>
-                        </tr>
-                      ) : encomiendasFiltradas.length > 0 ? (
-                        encomiendasFiltradas.map((encomienda) => (
-                          <tr
-                            key={encomienda.id}
-                            className="border-b border-slate-100 hover:bg-[#F8FAFC]"
-                          >
-                            <td className="px-5 py-4 text-sm text-slate-500">
+                    ) : encomiendasFiltradas.length > 0 ? (
+                      encomiendasFiltradas.map((encomienda) => (
+                        <tr
+                          key={encomienda.id}
+                          className="border-b border-slate-100 hover:bg-[#F8FAFC]"
+                        >
+                          <td className="px-3 py-3 align-top">
+                            <p className="text-xs text-slate-500">
                               {formatearFecha(encomienda.created_at)}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm font-bold text-[#0B1F3A]">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-sm font-black text-[#0B1F3A]">
                               {encomienda.departamento_numero || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-600">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-xs font-bold text-slate-700">
                               {encomienda.destinatario || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-xs text-slate-500">
                               {encomienda.empresa || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {encomienda.descripcion || "-"}
-                            </td>
+                          <td className="px-3 py-3 align-top">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs text-slate-600">
+                                {encomienda.descripcion || "-"}
+                              </p>
+                              <p className="truncate text-[11px] text-slate-400">
+                                Recibido por: {encomienda.recibido_por || "-"}
+                              </p>
+                            </div>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {encomienda.entregado_a || "-"}
-                            </td>
-
-                            <td className="px-5 py-4">
+                          <td className="px-3 py-3 align-top">
+                            <div className="min-w-0">
                               <span
-                                className={`rounded-full px-3 py-1 text-xs font-black ${
+                                className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[10px] font-black ${
                                   encomienda.estado === "PENDIENTE"
                                     ? "bg-yellow-100 text-yellow-700"
                                     : "bg-green-100 text-green-700"
@@ -466,46 +502,52 @@ export default function EncomiendasPage() {
                               >
                                 {encomienda.estado || "-"}
                               </span>
-                            </td>
 
-                            <td className="px-5 py-4">
-                              <div className="flex flex-wrap gap-2">
-                                {encomienda.estado === "PENDIENTE" && (
-                                  <button
-                                    onClick={() =>
-                                      entregarEncomienda(encomienda)
-                                    }
-                                    className="rounded-lg bg-green-50 px-3 py-2 text-xs font-bold text-green-700 transition hover:bg-green-100"
-                                  >
-                                    Entregar
-                                  </button>
-                                )}
+                              <p className="mt-1 truncate text-[11px] text-slate-400">
+                                Retira: {encomienda.entregado_a || "-"}
+                              </p>
+                            </div>
+                          </td>
 
+                          <td className="px-3 py-3 align-top">
+                            <div className="flex flex-col gap-1.5">
+                              {encomienda.estado === "PENDIENTE" && (
                                 <button
+                                  type="button"
                                   onClick={() =>
-                                    eliminarEncomienda(encomienda)
+                                    entregarEncomienda(encomienda)
                                   }
-                                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                                  className="rounded-lg bg-green-50 px-2 py-1.5 text-[11px] font-bold text-green-700 transition hover:bg-green-100"
                                 >
-                                  Eliminar
+                                  Entregar
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={8}
-                            className="px-5 py-10 text-center text-slate-500"
-                          >
-                            No se encontraron encomiendas.
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  eliminarEncomienda(encomienda)
+                                }
+                                className="rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-100"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-sm text-slate-500"
+                        >
+                          No se encontraron encomiendas.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>

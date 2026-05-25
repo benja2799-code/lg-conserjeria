@@ -1,276 +1,554 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-type RolUsuario = "ADMINISTRADOR" | "SUPERVISOR" | "CONSERJE" | "SIN ROL";
+type ConfiguracionSistema = {
+  nombre_edificio: string | null;
+  direccion: string | null;
+};
+
+type UsuarioLocal = {
+  nombre?: string;
+  name?: string;
+  email?: string;
+  rol?: string;
+  role?: string;
+  tipo?: string;
+  tipo_usuario?: string;
+  perfil?: string;
+};
+
+type IconName =
+  | "home"
+  | "book"
+  | "visits"
+  | "history"
+  | "box"
+  | "calendar"
+  | "clock"
+  | "building"
+  | "resident"
+  | "car"
+  | "file"
+  | "settings";
 
 type MenuItem = {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  icon: IconName;
+  roles?: string[];
 };
 
-function HomeIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l9-8 9 8" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 10v10h14V10" />
-    </svg>
-  );
-}
+const menuOperacion: MenuItem[] = [
+  { label: "Inicio", href: "/", icon: "home" },
+  { label: "Libro de novedades", href: "/novedades", icon: "book" },
+  { label: "Visitas", href: "/visitas", icon: "visits" },
+  { label: "Historial visitas", href: "/historial-visitas", icon: "history" },
+  { label: "Encomiendas", href: "/encomiendas", icon: "box" },
+  {
+    label: "Historial encomiendas",
+    href: "/historial-encomiendas",
+    icon: "history",
+  },
+  { label: "Reserva espacios", href: "/reservas", icon: "calendar" },
+  { label: "Control asistencia", href: "/asistencia", icon: "clock" },
+];
 
-function BookIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4.5A2.5 2.5 0 016.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15z" />
-    </svg>
-  );
-}
+const menuAdministracion: MenuItem[] = [
+  { label: "Departamentos", href: "/departamentos", icon: "building" },
+  { label: "Residentes", href: "/residentes", icon: "resident" },
+  { label: "Vehículos", href: "/vehiculos", icon: "car" },
+];
 
-function UsersIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16 11a4 4 0 10-8 0" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 21a8 8 0 0116 0" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5l3 2" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 22a10 10 0 100-20 10 10 0 000 20z" />
-    </svg>
-  );
-}
-
-function PackageIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.3 7L12 12l8.7-5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 22V12" />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3M16 7V3" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 11h16" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
-    </svg>
-  );
-}
-
-function BuildingIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 21h16" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 21V3h12v18" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 21a8 8 0 0116 0" />
-    </svg>
-  );
-}
-
-function CarIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 17h14l-1.5-6.5A2 2 0 0015.5 9h-7a2 2 0 00-2 1.5L5 17z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7 17v2M17 17v2" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7 13h.01M17 13h.01" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.3 4.3l.4-1.8h2.6l.4 1.8a8.1 8.1 0 012.1.9l1.6-1 1.8 1.8-1 1.6c.4.7.7 1.4.9 2.1l1.8.4v2.6l-1.8.4a8.1 8.1 0 01-.9 2.1l1 1.6-1.8 1.8-1.6-1a8.1 8.1 0 01-2.1.9l-.4 1.8h-2.6l-.4-1.8a8.1 8.1 0 01-2.1-.9l-1.6 1-1.8-1.8 1-1.6a8.1 8.1 0 01-.9-2.1l-1.8-.4v-2.6l1.8-.4c.2-.7.5-1.4.9-2.1l-1-1.6 1.8-1.8 1.6 1c.7-.4 1.4-.7 2.1-.9z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-    </svg>
-  );
-}
-
-const menuItems: MenuItem[] = [
-  { label: "Inicio", href: "/", icon: <HomeIcon /> },
-  { label: "Libro de novedades", href: "/novedades", icon: <BookIcon /> },
-  { label: "Visitas", href: "/visitas", icon: <UsersIcon /> },
-  { label: "Historial visitas", href: "/historial-visitas", icon: <ClockIcon /> },
-  { label: "Encomiendas", href: "/encomiendas", icon: <PackageIcon /> },
-  { label: "Historial encomiendas", href: "/historial-encomiendas", icon: <ClockIcon /> },
-  { label: "Reserva espacios", href: "/reservas", icon: <CalendarIcon /> },
-  { label: "Historial asistencia", href: "/asistencia", icon: <ClockIcon /> },
-  { label: "Departamentos", href: "/departamentos", icon: <BuildingIcon /> },
-  { label: "Residentes", href: "/residentes", icon: <UserIcon /> },
-  { label: "Vehículos", href: "/vehiculos", icon: <CarIcon /> },
-  { label: "Configuración", href: "/configuracion", icon: <SettingsIcon /> },
-  { label: "Registro general", href: "/registro-general", icon: <BookIcon /> },
+const menuSistema: MenuItem[] = [
+  {
+    label: "Registro general",
+    href: "/registro-general",
+    icon: "file",
+    roles: ["ADMINISTRADOR", "SUPERVISOR", "ADMIN"],
+  },
+  {
+    label: "Configuración",
+    href: "/configuracion",
+    icon: "settings",
+    roles: ["ADMINISTRADOR", "SUPERVISOR", "ADMIN"],
+  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
-  const [rol, setRol] = useState<RolUsuario>("SIN ROL");
   const [nombreEdificio, setNombreEdificio] = useState("Edificio Los Alerces");
   const [direccion, setDireccion] = useState("Av. Alemania 1234, Temuco");
+  const [logoError, setLogoError] = useState(false);
+
+  const [usuario, setUsuario] = useState<UsuarioLocal>({
+    nombre: "Usuario",
+    rol: "CONSERJE",
+  });
 
   useEffect(() => {
-    const cargarDatos = () => {
-      const usuarioGuardado = localStorage.getItem("usuarioSistema");
+    const cargarConfiguracion = async () => {
+      const { data, error } = await supabase
+        .from("configuracion_sistema")
+        .select("nombre_edificio, direccion")
+        .eq("id", "general")
+        .maybeSingle();
 
-      if (usuarioGuardado) {
-        try {
-          const usuario = JSON.parse(usuarioGuardado);
-          setRol(usuario.rol || "SIN ROL");
-        } catch {
-          setRol("SIN ROL");
-        }
+      if (error) {
+        console.error("Error al cargar datos del sidebar:", error);
+        return;
       }
 
-      const configuracionGuardada = localStorage.getItem("configuracion");
+      if (data) {
+        const config = data as ConfiguracionSistema;
 
-      if (configuracionGuardada) {
-        try {
-          const configuracion = JSON.parse(configuracionGuardada);
-          setNombreEdificio(configuracion.nombreEdificio || "Edificio Los Alerces");
-          setDireccion(configuracion.direccion || "Av. Alemania 1234, Temuco");
-        } catch {
-          setNombreEdificio("Edificio Los Alerces");
-          setDireccion("Av. Alemania 1234, Temuco");
-        }
+        setNombreEdificio(config.nombre_edificio || "Edificio Los Alerces");
+        setDireccion(config.direccion || "Av. Alemania 1234, Temuco");
       }
     };
 
-    cargarDatos();
-
-    window.addEventListener("storage", cargarDatos);
-
-    return () => {
-      window.removeEventListener("storage", cargarDatos);
-    };
+    cargarConfiguracion();
   }, []);
 
-  const menuFiltrado = menuItems.filter((item) => {
-    const esAdminSupervisor = rol === "ADMINISTRADOR" || rol === "SUPERVISOR";
+  useEffect(() => {
+    try {
+      const posiblesKeys = [
+        "usuario",
+        "usuarioActivo",
+        "user",
+        "currentUser",
+        "authUser",
+        "sesionUsuario",
+        "sessionUser",
+        "loginUser",
+      ];
 
-    if (esAdminSupervisor) {
+      let usuarioEncontrado: UsuarioLocal | null = null;
+
+      for (const key of posiblesKeys) {
+        const valor = localStorage.getItem(key);
+
+        if (!valor) continue;
+
+        try {
+          const parseado = JSON.parse(valor);
+
+          if (
+            parseado?.rol ||
+            parseado?.role ||
+            parseado?.tipo ||
+            parseado?.tipo_usuario ||
+            parseado?.perfil ||
+            parseado?.nombre ||
+            parseado?.name ||
+            parseado?.email
+          ) {
+            usuarioEncontrado = parseado;
+            break;
+          }
+        } catch {
+          // Ignora valores que no sean JSON
+        }
+      }
+
+      if (usuarioEncontrado) {
+        const rolDetectado =
+          usuarioEncontrado.rol ||
+          usuarioEncontrado.role ||
+          usuarioEncontrado.tipo ||
+          usuarioEncontrado.tipo_usuario ||
+          usuarioEncontrado.perfil ||
+          "CONSERJE";
+
+        const nombreDetectado =
+          usuarioEncontrado.nombre ||
+          usuarioEncontrado.name ||
+          usuarioEncontrado.email ||
+          "Usuario";
+
+        setUsuario({
+          nombre: nombreDetectado,
+          rol: String(rolDetectado).toUpperCase(),
+        });
+      } else {
+        setUsuario({
+          nombre: "Usuario",
+          rol: "CONSERJE",
+        });
+      }
+    } catch (error) {
+      console.error("Error al leer usuario local:", error);
+
+      setUsuario({
+        nombre: "Usuario",
+        rol: "CONSERJE",
+      });
+    }
+  }, []);
+
+  const rolNormalizado = useMemo(() => {
+    const rol = String(usuario.rol || "CONSERJE").toUpperCase();
+
+    if (rol === "ADMIN") return "ADMIN";
+    if (rol === "ADMINISTRADOR") return "ADMINISTRADOR";
+    if (rol === "SUPERVISOR") return "SUPERVISOR";
+    if (rol === "CONSERJE") return "CONSERJE";
+
+    return "CONSERJE";
+  }, [usuario]);
+
+  const nombreUsuario = useMemo(() => {
+    return usuario.nombre || usuario.name || usuario.email || "Usuario";
+  }, [usuario]);
+
+  const puedeVerItem = (item: MenuItem) => {
+    if (!item.roles || item.roles.length === 0) {
       return true;
     }
 
-    const menuPermitidoConserje = [
-      "Inicio",
-      "Libro de novedades",
-      "Visitas",
-      "Historial visitas",
-      "Encomiendas",
-      "Historial encomiendas",
-      "Reserva espacios",
-    ];
+    return item.roles.includes(rolNormalizado);
+  };
 
-    return menuPermitidoConserje.includes(item.label);
-  });
+  const esActivo = (href: string) => {
+    if (href === "/") return pathname === "/";
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const renderMenu = (items: MenuItem[]) => {
+    return items.filter(puedeVerItem).map((item) => {
+      const activo = esActivo(item.href);
+
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition ${
+            activo
+              ? "bg-white text-[#0B1F3A] shadow-sm"
+              : "text-slate-300 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <span
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
+              activo
+                ? "bg-[#F4F6F9] text-[#0B1F3A]"
+                : "bg-white/5 text-slate-300 group-hover:bg-white/10 group-hover:text-white"
+            }`}
+          >
+            <SidebarIcon name={item.icon} />
+          </span>
+
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+
+          {activo && (
+            <span className="absolute right-2 h-6 w-1 rounded-full bg-[#D9A520]" />
+          )}
+        </Link>
+      );
+    });
+  };
+
+  const itemsSistemaVisibles = menuSistema.filter(puedeVerItem);
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-[300px] shrink-0 overflow-y-auto bg-[#081E38] px-6 py-8 text-white lg:block">
-      <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm">
-        <div className="mb-5 flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white text-2xl font-black text-[#0B1F3A] shadow-md">
-            <img
-              src="/logo_LG.png"
-              alt="Logo LG"
-              className="h-full w-full object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-            <span className="absolute">LG</span>
+    <aside className="sticky top-0 hidden h-screen w-[255px] shrink-0 overflow-y-auto bg-[#071A33] px-4 py-5 text-white shadow-xl lg:block">
+      <div className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-md">
+            {!logoError ? (
+              <Image
+                src="/logo_LG.png"
+                alt="Logo LG"
+                width={48}
+                height={48}
+                className="h-full w-full object-contain"
+                priority
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <span className="text-sm font-black text-[#0B1F3A]">LG</span>
+            )}
           </div>
 
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D9A520]">
               Control
             </p>
-            <h2 className="text-xl font-black leading-tight">Conserjería</h2>
+
+            <h2 className="truncate text-lg font-black leading-tight text-white">
+              Conserjería
+            </h2>
           </div>
         </div>
 
-        <h3 className="text-2xl font-black leading-tight">{nombreEdificio}</h3>
+        <h3 className="line-clamp-2 text-lg font-black leading-tight text-white">
+          {nombreEdificio}
+        </h3>
 
-        <p className="mt-3 text-sm leading-relaxed text-slate-200">
+        <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-300">
           {direccion}
         </p>
 
-        <div className="mt-5 h-1 w-20 rounded-full bg-[#D9A520]" />
+        <div className="mt-4 h-1 w-14 rounded-full bg-[#D9A520]" />
       </div>
 
-      <div className="mb-5">
-        <p className="mb-4 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
-          Módulos del sistema
+      <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D9A520]">
+          Usuario activo
         </p>
 
-        <nav className="space-y-2">
-          {menuFiltrado.map((item) => {
-            const activo =
-              pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+        <p className="mt-1 truncate text-sm font-black text-white">
+          {nombreUsuario}
+        </p>
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`group flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                  activo
-                    ? "bg-white text-[#0B1F3A] shadow-md"
-                    : "text-slate-200 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <span
-                  className={`transition ${
-                    activo ? "text-[#0B1F3A]" : "text-slate-300 group-hover:text-white"
-                  }`}
-                >
-                  {item.icon}
-                </span>
-
-                <span>{item.label}</span>
-
-                {activo && (
-                  <span className="ml-auto h-8 w-1 rounded-full bg-[#D9A520]" />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+        <p
+          className={`mt-1 text-[11px] font-bold uppercase ${
+            rolNormalizado === "CONSERJE"
+              ? "text-yellow-300"
+              : "text-green-300"
+          }`}
+        >
+          {rolNormalizado}
+        </p>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
-        <p className="text-xs font-black uppercase text-[#D9A520]">
-          Rol activo
+      <nav className="space-y-5">
+        <section>
+          <TituloSeccion texto="Operación" />
+          <div className="space-y-1.5">{renderMenu(menuOperacion)}</div>
+        </section>
+
+        <section>
+          <TituloSeccion texto="Administración" />
+          <div className="space-y-1.5">{renderMenu(menuAdministracion)}</div>
+        </section>
+
+        {itemsSistemaVisibles.length > 0 && (
+          <section>
+            <TituloSeccion texto="Sistema" />
+            <div className="space-y-1.5">{renderMenu(menuSistema)}</div>
+          </section>
+        )}
+      </nav>
+
+      <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3">
+        <p className="text-[11px] leading-relaxed text-slate-400">
+          Control operacional de conserjería.
         </p>
 
-        <p className="mt-2 text-sm font-black uppercase text-white">
-          {rol}
-        </p>
-
-        <p className="mt-2 text-xs leading-relaxed text-slate-300">
-          Sistema de control operacional.
+        <p className="mt-1 text-[11px] font-bold text-slate-500">
+          Versión 1.0.0
         </p>
       </div>
     </aside>
+  );
+}
+
+function TituloSeccion({ texto }: { texto: string }) {
+  return (
+    <p className="mb-2 px-2 text-[10px] font-black uppercase tracking-[0.28em] text-[#D9A520]">
+      {texto}
+    </p>
+  );
+}
+
+function SidebarIcon({ name }: { name: IconName }) {
+  const common = "h-[18px] w-[18px]";
+
+  if (name === "home") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M3 11.5 12 4l9 7.5" />
+        <path d="M5 10.5V20h14v-9.5" />
+        <path d="M9 20v-6h6v6" />
+      </svg>
+    );
+  }
+
+  if (name === "book") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 0V4Z" />
+        <path d="M5 18a3 3 0 0 1 3-3h11" />
+      </svg>
+    );
+  }
+
+  if (name === "visits") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+        <path d="M16 11h5" />
+        <path d="M18.5 8.5 21 11l-2.5 2.5" />
+      </svg>
+    );
+  }
+
+  if (name === "history") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M3 12a9 9 0 1 0 3-6.7" />
+        <path d="M3 4v6h6" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    );
+  }
+
+  if (name === "box") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M21 8 12 3 3 8l9 5 9-5Z" />
+        <path d="M3 8v8l9 5 9-5V8" />
+        <path d="M12 13v8" />
+      </svg>
+    );
+  }
+
+  if (name === "calendar") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M7 3v4" />
+        <path d="M17 3v4" />
+        <path d="M4 8h16" />
+        <path d="M5 5h14a2 2 0 0 1 2 2v13H3V7a2 2 0 0 1 2-2Z" />
+      </svg>
+    );
+  }
+
+  if (name === "clock") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    );
+  }
+
+  if (name === "building") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16" />
+        <path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2" />
+      </svg>
+    );
+  }
+
+  if (name === "resident") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21a8 8 0 0 1 16 0" />
+      </svg>
+    );
+  }
+
+  if (name === "car") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M5 13 7 7h10l2 6" />
+        <path d="M4 13h16v5H4z" />
+        <circle cx="7" cy="18" r="1.5" />
+        <circle cx="17" cy="18" r="1.5" />
+      </svg>
+    );
+  }
+
+  if (name === "file") {
+    return (
+      <svg
+        className={common}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M7 3h7l5 5v13H7z" />
+        <path d="M14 3v6h5" />
+        <path d="M9 13h6M9 17h6" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      className={common}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a8 8 0 0 0 .1-6" />
+      <path d="M4.5 9a8 8 0 0 0 .1 6" />
+      <path d="M8 4.7a8 8 0 0 1 8 0" />
+      <path d="M16 19.3a8 8 0 0 1-8 0" />
+    </svg>
   );
 }

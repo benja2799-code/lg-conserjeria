@@ -24,6 +24,7 @@ export default function DepartamentosPage() {
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   const [numero, setNumero] = useState("");
   const [piso, setPiso] = useState("");
@@ -68,6 +69,20 @@ export default function DepartamentosPage() {
     setObservacion("");
   };
 
+  const abrirFormulario = () => {
+    setMostrarFormulario(true);
+
+    setTimeout(() => {
+      const form = document.getElementById("formulario-departamento");
+      form?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const cerrarFormulario = () => {
+    limpiarFormulario();
+    setMostrarFormulario(false);
+  };
+
   const registrarDepartamento = async () => {
     if (!numero.trim()) {
       alert("Debes ingresar el número del departamento.");
@@ -105,7 +120,7 @@ export default function DepartamentosPage() {
       return;
     }
 
-    const evento = await registrarEvento({
+    await registrarEvento({
       modulo: "Departamentos",
       accion: "Crear departamento",
       descripcion: `Se registró el departamento ${numero.trim()}${
@@ -115,9 +130,8 @@ export default function DepartamentosPage() {
       referencia_tabla: "departamentos",
     });
 
-    console.log("Evento departamento registrado:", evento);
-
     limpiarFormulario();
+    setMostrarFormulario(false);
     await cargarDepartamentos();
 
     alert("Departamento registrado correctamente.");
@@ -126,8 +140,15 @@ export default function DepartamentosPage() {
   const cambiarEstadoDepartamento = async (departamento: Departamento) => {
     const estadoActual = departamento.estado || "HABITADO";
 
-    const nuevoEstado =
-      estadoActual === "HABITADO" ? "DESOCUPADO" : "HABITADO";
+    let nuevoEstado = "HABITADO";
+
+    if (estadoActual === "HABITADO") {
+      nuevoEstado = "DESOCUPADO";
+    } else if (estadoActual === "DESOCUPADO") {
+      nuevoEstado = "MANTENCION";
+    } else {
+      nuevoEstado = "HABITADO";
+    }
 
     const confirmar = confirm(
       `¿Deseas cambiar el estado del departamento ${departamento.numero} a ${nuevoEstado}?`
@@ -188,18 +209,6 @@ export default function DepartamentosPage() {
     await cargarDepartamentos();
   };
 
-  const formatearFecha = (fecha: string | null) => {
-    if (!fecha) return "-";
-
-    return new Date(fecha).toLocaleString("es-CL", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const departamentosFiltrados = useMemo(() => {
     const texto = busqueda.toLowerCase();
 
@@ -229,29 +238,49 @@ export default function DepartamentosPage() {
     (departamento) => departamento.estado === "DESOCUPADO"
   );
 
+  const departamentosMantencion = departamentos.filter(
+    (departamento) => departamento.estado === "MANTENCION"
+  );
+
   return (
     <main className="min-h-screen bg-[#F4F6F9] text-[#0B1220]">
       <div className="flex min-h-screen">
         <Sidebar />
 
-        <section className="flex min-h-screen flex-1 flex-col">
+        <section className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
           <Header />
 
-          <div className="flex-1 p-8">
-            <div className="mb-8">
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
-                Administración del edificio
-              </p>
+          <div className="min-w-0 flex-1 overflow-x-hidden p-8">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
+                  Administración del edificio
+                </p>
 
-              <h1 className="text-4xl font-black text-[#0B1F3A]">
-                Departamentos
-              </h1>
+                <h1 className="text-4xl font-black text-[#0B1F3A]">
+                  Departamentos
+                </h1>
 
-              <p className="mt-2 max-w-2xl text-slate-500">
-                Registra y administra los departamentos del edificio.
-              </p>
+                <p className="mt-2 max-w-2xl text-slate-500">
+                  Administra las unidades del edificio, propietarios, contacto y
+                  estado operacional.
+                </p>
 
-              <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+                <div className="mt-4 h-1 w-16 rounded-full bg-[#D9A520]" />
+              </div>
+
+              <button
+                onClick={mostrarFormulario ? cerrarFormulario : abrirFormulario}
+                className={`w-fit rounded-xl px-5 py-3 text-sm font-bold shadow-md transition ${
+                  mostrarFormulario
+                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                    : "bg-[#0B1F3A] text-white hover:bg-[#163B73]"
+                }`}
+              >
+                {mostrarFormulario
+                  ? "Cerrar formulario"
+                  : "+ Nuevo departamento"}
+              </button>
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-4">
@@ -275,124 +304,139 @@ export default function DepartamentosPage() {
               />
 
               <StatsCard
-                title="Resultado"
-                value={String(departamentosFiltrados.length)}
-                description="Registros filtrados"
+                title="Mantención"
+                value={String(departamentosMantencion.length)}
+                description="Unidades en revisión"
               />
             </div>
 
-            <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-5">
-                <h2 className="text-2xl font-black text-[#0B1F3A]">
-                  Registrar departamento
-                </h2>
+            {mostrarFormulario && (
+              <section
+                id="formulario-departamento"
+                className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black text-[#0B1F3A]">
+                      Nuevo departamento
+                    </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Cada departamento creado quedará automáticamente en el Registro general.
-                </p>
-              </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Completa los datos para agregar una nueva unidad al
+                      edificio.
+                    </p>
+                  </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <Campo
-                  label="Número departamento"
-                  value={numero}
-                  onChange={setNumero}
-                  placeholder="Ej: 1204"
-                />
+                  <button
+                    onClick={cerrarFormulario}
+                    className="w-fit rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-2 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
+                  >
+                    Cancelar
+                  </button>
+                </div>
 
-                <Campo
-                  label="Piso"
-                  value={piso}
-                  onChange={setPiso}
-                  placeholder="Ej: 12"
-                />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <Campo
+                    label="Número departamento"
+                    value={numero}
+                    onChange={setNumero}
+                    placeholder="Ej: 1204"
+                  />
 
-                <Campo
-                  label="Torre"
-                  value={torre}
-                  onChange={setTorre}
-                  placeholder="Ej: A"
-                />
+                  <Campo
+                    label="Piso"
+                    value={piso}
+                    onChange={setPiso}
+                    placeholder="Ej: 12"
+                  />
 
-                <div>
+                  <Campo
+                    label="Torre"
+                    value={torre}
+                    onChange={setTorre}
+                    placeholder="Ej: A"
+                  />
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
+                      Estado
+                    </label>
+
+                    <select
+                      value={estado}
+                      onChange={(e) => setEstado(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
+                    >
+                      <option value="HABITADO">Habitado</option>
+                      <option value="DESOCUPADO">Desocupado</option>
+                      <option value="MANTENCION">Mantención</option>
+                    </select>
+                  </div>
+
+                  <Campo
+                    label="Propietario"
+                    value={propietario}
+                    onChange={setPropietario}
+                    placeholder="Ej: Juan Pérez"
+                  />
+
+                  <Campo
+                    label="Teléfono propietario"
+                    value={telefonoPropietario}
+                    onChange={setTelefonoPropietario}
+                    placeholder="Ej: +56 9 1234 5678"
+                  />
+
+                  <div className="md:col-span-2">
+                    <Campo
+                      label="Correo propietario"
+                      value={correoPropietario}
+                      onChange={setCorreoPropietario}
+                      placeholder="Ej: propietario@correo.cl"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4">
                   <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                    Estado
+                    Observación
                   </label>
 
-                  <select
-                    value={estado}
-                    onChange={(e) => setEstado(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                  >
-                    <option value="HABITADO">Habitado</option>
-                    <option value="DESOCUPADO">Desocupado</option>
-                    <option value="MANTENCION">Mantención</option>
-                  </select>
-                </div>
-
-                <Campo
-                  label="Propietario"
-                  value={propietario}
-                  onChange={setPropietario}
-                  placeholder="Ej: Juan Pérez"
-                />
-
-                <Campo
-                  label="Teléfono propietario"
-                  value={telefonoPropietario}
-                  onChange={setTelefonoPropietario}
-                  placeholder="Ej: +56 9 1234 5678"
-                />
-
-                <div className="xl:col-span-2">
-                  <Campo
-                    label="Correo propietario"
-                    value={correoPropietario}
-                    onChange={setCorreoPropietario}
-                    placeholder="Ej: propietario@correo.cl"
+                  <textarea
+                    value={observacion}
+                    onChange={(e) => setObservacion(e.target.value)}
+                    placeholder="Ej: Departamento arrendado, propietario no residente, en mantención, etc."
+                    className="min-h-[90px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
                   />
                 </div>
-              </div>
 
-              <div className="mt-4">
-                <label className="mb-2 block text-sm font-bold text-[#0B1F3A]">
-                  Observación
-                </label>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    onClick={registrarDepartamento}
+                    className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
+                  >
+                    Guardar departamento
+                  </button>
 
-                <textarea
-                  value={observacion}
-                  onChange={(e) => setObservacion(e.target.value)}
-                  placeholder="Ej: Departamento arrendado, propietario no residente, en mantención, etc."
-                  className="min-h-[90px] w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520]"
-                />
-              </div>
+                  <button
+                    onClick={limpiarFormulario}
+                    className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </section>
+            )}
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  onClick={registrarDepartamento}
-                  className="rounded-xl bg-[#0B1F3A] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#163B73]"
-                >
-                  Registrar departamento
-                </button>
-
-                <button
-                  onClick={limpiarFormulario}
-                  className="rounded-xl border border-slate-200 bg-[#F8FAFC] px-5 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
-                >
-                  Limpiar
-                </button>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-[#0B1F3A]">
-                    Registro de departamentos
+                  <h2 className="text-xl font-black text-[#0B1F3A]">
+                    Listado de departamentos
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Listado de unidades registradas en el edificio.
+                  <p className="mt-1 text-xs text-slate-500">
+                    Unidades registradas actualmente en el edificio.
                   </p>
                 </div>
 
@@ -400,132 +444,138 @@ export default function DepartamentosPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar departamento..."
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#D9A520] md:w-80"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#D9A520] md:w-72"
                 />
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1100px] border-collapse">
-                    <thead className="bg-[#0B1F3A] text-white">
+                <table className="w-full table-fixed border-collapse text-sm">
+                  <thead className="bg-[#0B1F3A] text-white">
+                    <tr>
+                      <th className="w-[11%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Depto
+                      </th>
+                      <th className="w-[8%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Piso
+                      </th>
+                      <th className="w-[8%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Torre
+                      </th>
+                      <th className="w-[20%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Propietario
+                      </th>
+                      <th className="w-[23%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Contacto
+                      </th>
+                      <th className="w-[14%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Estado
+                      </th>
+                      <th className="w-[16%] px-3 py-3 text-left text-[11px] font-black uppercase">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {cargando ? (
                       <tr>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Número
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Piso
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Torre
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Propietario
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Teléfono
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Estado
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Creación
-                        </th>
-                        <th className="px-5 py-4 text-left text-xs font-black uppercase">
-                          Acciones
-                        </th>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-sm font-bold text-[#0B1F3A]"
+                        >
+                          Cargando departamentos...
+                        </td>
                       </tr>
-                    </thead>
-
-                    <tbody>
-                      {cargando ? (
-                        <tr>
-                          <td
-                            colSpan={8}
-                            className="px-5 py-10 text-center font-bold text-[#0B1F3A]"
-                          >
-                            Cargando departamentos...
-                          </td>
-                        </tr>
-                      ) : departamentosFiltrados.length > 0 ? (
-                        departamentosFiltrados.map((departamento) => (
-                          <tr
-                            key={departamento.id}
-                            className="border-b border-slate-100 hover:bg-[#F8FAFC]"
-                          >
-                            <td className="px-5 py-4 font-bold text-[#0B1F3A]">
+                    ) : departamentosFiltrados.length > 0 ? (
+                      departamentosFiltrados.map((departamento) => (
+                        <tr
+                          key={departamento.id}
+                          className="border-b border-slate-100 hover:bg-[#F8FAFC]"
+                        >
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-sm font-black text-[#0B1F3A]">
                               {departamento.numero}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-xs text-slate-500">
                               {departamento.piso || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-xs text-slate-500">
                               {departamento.torre || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-600">
+                          <td className="px-3 py-3 align-top">
+                            <p className="truncate text-xs font-bold text-slate-700">
                               {departamento.propietario || "-"}
-                            </td>
+                            </p>
+                          </td>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {departamento.telefono_propietario || "-"}
-                            </td>
+                          <td className="px-3 py-3 align-top">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-semibold text-slate-600">
+                                {departamento.telefono_propietario || "-"}
+                              </p>
+                              <p className="truncate text-[11px] text-slate-400">
+                                {departamento.correo_propietario || "-"}
+                              </p>
+                            </div>
+                          </td>
 
-                            <td className="px-5 py-4">
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-black ${
-                                  departamento.estado === "HABITADO"
-                                    ? "bg-green-100 text-green-700"
-                                    : departamento.estado === "DESOCUPADO"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-slate-100 text-slate-500"
-                                }`}
+                          <td className="px-3 py-3 align-top">
+                            <span
+                              className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[10px] font-black ${
+                                departamento.estado === "HABITADO"
+                                  ? "bg-green-100 text-green-700"
+                                  : departamento.estado === "DESOCUPADO"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {departamento.estado || "-"}
+                            </span>
+                          </td>
+
+                          <td className="px-3 py-3 align-top">
+                            <div className="grid grid-cols-1 gap-1.5 xl:grid-cols-2">
+                              <button
+                                onClick={() =>
+                                  cambiarEstadoDepartamento(departamento)
+                                }
+                                className="rounded-lg bg-blue-50 px-2 py-1.5 text-[11px] font-bold text-blue-700 transition hover:bg-blue-100"
                               >
-                                {departamento.estado || "-"}
-                              </span>
-                            </td>
+                                Estado
+                              </button>
 
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {formatearFecha(departamento.created_at)}
-                            </td>
-
-                            <td className="px-5 py-4">
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  onClick={() =>
-                                    cambiarEstadoDepartamento(departamento)
-                                  }
-                                  className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
-                                >
-                                  Cambiar estado
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    eliminarDepartamento(departamento)
-                                  }
-                                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100"
-                                >
-                                  Eliminar
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={8}
-                            className="px-5 py-10 text-center text-slate-500"
-                          >
-                            No se encontraron departamentos.
+                              <button
+                                onClick={() =>
+                                  eliminarDepartamento(departamento)
+                                }
+                                className="rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-100"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-sm text-slate-500"
+                        >
+                          No se encontraron departamentos.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>
