@@ -12,14 +12,12 @@ type ConfiguracionSistema = {
 };
 
 type UsuarioLocal = {
+  id?: string;
   nombre?: string;
   name?: string;
   email?: string;
   rol?: string;
   role?: string;
-  tipo?: string;
-  tipo_usuario?: string;
-  perfil?: string;
 };
 
 type IconName =
@@ -82,17 +80,37 @@ const menuSistema: MenuItem[] = [
 export default function Sidebar() {
   const pathname = usePathname();
 
-  const [nombreEdificio, setNombreEdificio] = useState("Edificio Los Alerces");
-  const [direccion, setDireccion] = useState("Av. Alemania 1234, Temuco");
+  const [nombreEdificio, setNombreEdificio] = useState("Cargando edificio...");
+  const [direccion, setDireccion] = useState("Cargando dirección...");
   const [logoError, setLogoError] = useState(false);
 
   const [usuario, setUsuario] = useState<UsuarioLocal>({
     nombre: "Usuario",
     rol: "CONSERJE",
   });
+  const [usuarioCargado, setUsuarioCargado] = useState(false);
 
   useEffect(() => {
-    const cargarConfiguracion = async () => {
+    cargarConfiguracion();
+    cargarUsuario();
+  }, []);
+
+  const cargarConfiguracion = async () => {
+    try {
+      const configGuardada = localStorage.getItem("configuracionSistema");
+
+      if (configGuardada) {
+        const configLocal = JSON.parse(configGuardada);
+
+        setNombreEdificio(
+          configLocal.nombre_edificio ||
+            configLocal.nombreEdificio ||
+            "Edificio"
+        );
+
+        setDireccion(configLocal.direccion || "Dirección no configurada");
+      }
+
       const { data, error } = await supabase
         .from("configuracion_sistema")
         .select("nombre_edificio, direccion")
@@ -107,170 +125,99 @@ export default function Sidebar() {
       if (data) {
         const config = data as ConfiguracionSistema;
 
-        setNombreEdificio(config.nombre_edificio || "Edificio Los Alerces");
-        setDireccion(config.direccion || "Av. Alemania 1234, Temuco");
+        const nombreFinal = config.nombre_edificio || "Edificio";
+        const direccionFinal = config.direccion || "Dirección no configurada";
+
+        setNombreEdificio(nombreFinal);
+        setDireccion(direccionFinal);
+
+        localStorage.setItem(
+          "configuracionSistema",
+          JSON.stringify({
+            nombre_edificio: nombreFinal,
+            direccion: direccionFinal,
+          })
+        );
       }
-    };
+    } catch (error) {
+      console.error("Error al cargar configuración del sidebar:", error);
 
-    cargarConfiguracion();
-  }, []);
-
-  useEffect(() => {
-  try {
-    const posiblesKeys = [
-      "usuario",
-      "usuarioActivo",
-      "user",
-      "currentUser",
-      "authUser",
-      "sesionUsuario",
-      "sessionUser",
-      "loginUser",
-      "rol",
-      "role",
-    ];
-
-    const limpiarTexto = (valor: any) => {
-      return String(valor || "")
-        .trim()
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-    };
-
-    const normalizarRolDetectado = (valor: any) => {
-      const rol = limpiarTexto(valor);
-
-      if (
-        rol.includes("ADMIN") ||
-        rol.includes("ADMINISTRADOR") ||
-        rol.includes("ADMINISTRACION")
-      ) {
-        return "ADMINISTRADOR";
-      }
-
-      if (rol.includes("SUPERVISOR")) {
-        return "SUPERVISOR";
-      }
-
-      if (
-        rol.includes("CONSERJE") ||
-        rol.includes("PORTERO") ||
-        rol.includes("GUARDIA") ||
-        rol.includes("OPERADOR")
-      ) {
-        return "CONSERJE";
-      }
-
-      return "";
-    };
-
-    const buscarValor = (objeto: any, campos: string[]): string | null => {
-      if (!objeto || typeof objeto !== "object") return null;
-
-      for (const campo of campos) {
-        if (objeto[campo]) return String(objeto[campo]);
-      }
-
-      for (const key of Object.keys(objeto)) {
-        if (typeof objeto[key] === "object") {
-          const encontrado = buscarValor(objeto[key], campos);
-          if (encontrado) return encontrado;
-        }
-      }
-
-      return null;
-    };
-
-    let usuarioFinal: UsuarioLocal | null = null;
-
-    for (const key of posiblesKeys) {
-      const valorLocal = localStorage.getItem(key);
-      const valorSession = sessionStorage.getItem(key);
-      const valor = valorLocal || valorSession;
-
-      if (!valor) continue;
-
-      try {
-        const parseado = JSON.parse(valor);
-
-        const rolEncontrado = buscarValor(parseado, [
-          "rol",
-          "role",
-          "tipo",
-          "tipo_usuario",
-          "tipoUsuario",
-          "perfil",
-          "cargo",
-        ]);
-
-        const nombreEncontrado = buscarValor(parseado, [
-          "nombre",
-          "name",
-          "email",
-          "usuario",
-          "username",
-        ]);
-
-        const rolNormalizado = normalizarRolDetectado(rolEncontrado);
-
-        if (rolNormalizado || nombreEncontrado) {
-          usuarioFinal = {
-            nombre: nombreEncontrado || "Usuario",
-            rol: rolNormalizado || "CONSERJE",
-          };
-
-          break;
-        }
-      } catch {
-        const rolNormalizado = normalizarRolDetectado(valor);
-
-        if (rolNormalizado) {
-          usuarioFinal = {
-            nombre: "Usuario",
-            rol: rolNormalizado,
-          };
-
-          break;
-        }
-      }
+      setNombreEdificio("Edificio");
+      setDireccion("Dirección no configurada");
     }
+  };
 
-    if (usuarioFinal) {
-      setUsuario(usuarioFinal);
-      console.log("USUARIO DETECTADO SIDEBAR:", usuarioFinal);
-    } else {
+  const cargarUsuario = () => {
+    try {
+      const usuarioGuardado = localStorage.getItem("usuarioSistema");
+      const rolDirecto = localStorage.getItem("rol");
+
+      if (usuarioGuardado) {
+        const parseado = JSON.parse(usuarioGuardado);
+
+        const nombreDetectado =
+          parseado.nombre || parseado.name || parseado.email || "Usuario";
+
+        const rolDetectado =
+          parseado.rol || parseado.role || rolDirecto || "CONSERJE";
+
+        setUsuario({
+  id: parseado.id,
+  nombre: nombreDetectado,
+  email: parseado.email,
+  rol: normalizarRol(rolDetectado),
+});
+
+setUsuarioCargado(true);
+return;
+      }
+
       setUsuario({
-        nombre: "Usuario",
-        rol: "CONSERJE",
-      });
+  nombre: "Usuario",
+  rol: normalizarRol(rolDirecto || "CONSERJE"),
+});
 
-      console.log("NO SE DETECTÓ ROL, SE ASIGNA CONSERJE");
+setUsuarioCargado(true);
+
+    } catch (error) {
+      console.error("Error al leer usuario en Sidebar:", error);
+
+      setUsuario({
+  nombre: "Usuario",
+  rol: "CONSERJE",
+});
+
+setUsuarioCargado(true);
     }
-  } catch (error) {
-    console.error("Error al leer usuario local:", error);
+  };
 
-    setUsuario({
-      nombre: "Usuario",
-      rol: "CONSERJE",
-    });
-  }
-}, []);
+  const normalizarRol = (valor?: string | null) => {
+    const rol = String(valor || "CONSERJE")
+      .trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
 
-  const rolNormalizado = useMemo(() => {
-    const rol = String(usuario.rol || "CONSERJE").toUpperCase();
+    if (
+      rol === "ADMIN" ||
+      rol === "ADMINISTRADOR" ||
+      rol === "ADMINISTRACION" ||
+      rol === "ADMINISTRADOR(A)"
+    ) {
+      return "ADMINISTRADOR";
+    }
 
-    if (rol === "ADMIN") return "ADMIN";
-    if (rol === "ADMINISTRADOR") return "ADMINISTRADOR";
-    if (rol === "SUPERVISOR") return "SUPERVISOR";
-    if (rol === "CONSERJE") return "CONSERJE";
+    if (rol === "SUPERVISOR" || rol === "SUPERVISORA") {
+      return "SUPERVISOR";
+    }
 
     return "CONSERJE";
+  };
+
+  const rolNormalizado = useMemo(() => {
+    return normalizarRol(usuario.rol || usuario.role || "CONSERJE");
   }, [usuario]);
 
-  const nombreUsuario = useMemo(() => {
-    return usuario.nombre || usuario.name || usuario.email || "Usuario";
-  }, [usuario]);
 
   const puedeVerItem = (item: MenuItem) => {
     if (!item.roles || item.roles.length === 0) {
@@ -282,7 +229,6 @@ export default function Sidebar() {
 
   const esActivo = (href: string) => {
     if (href === "/") return pathname === "/";
-
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -320,7 +266,9 @@ export default function Sidebar() {
     });
   };
 
-  const itemsSistemaVisibles = menuSistema.filter(puedeVerItem);
+  const itemsSistemaVisibles = usuarioCargado
+  ? menuSistema.filter(puedeVerItem)
+  : [];
 
   return (
     <aside className="sticky top-0 hidden h-screen w-[255px] shrink-0 overflow-y-auto bg-[#071A33] px-4 py-5 text-white shadow-xl lg:block">
@@ -329,7 +277,7 @@ export default function Sidebar() {
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-md">
             {!logoError ? (
               <Image
-                src="/logo_LG.png"
+                src="/logo_LOGO.png"
                 alt="Logo LG"
                 width={48}
                 height={48}
@@ -364,25 +312,7 @@ export default function Sidebar() {
         <div className="mt-4 h-1 w-14 rounded-full bg-[#D9A520]" />
       </div>
 
-      <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D9A520]">
-          Usuario activo
-        </p>
-
-        <p className="mt-1 truncate text-sm font-black text-white">
-          {nombreUsuario}
-        </p>
-
-        <p
-          className={`mt-1 text-[11px] font-bold uppercase ${
-            rolNormalizado === "CONSERJE"
-              ? "text-yellow-300"
-              : "text-green-300"
-          }`}
-        >
-          {rolNormalizado}
-        </p>
-      </div>
+     
 
       <nav className="space-y-5">
         <section>
@@ -395,12 +325,12 @@ export default function Sidebar() {
           <div className="space-y-1.5">{renderMenu(menuAdministracion)}</div>
         </section>
 
-        {itemsSistemaVisibles.length > 0 && (
-          <section>
-            <TituloSeccion texto="Sistema" />
-            <div className="space-y-1.5">{renderMenu(menuSistema)}</div>
-          </section>
-        )}
+        {usuarioCargado && itemsSistemaVisibles.length > 0 && (
+  <section>
+    <TituloSeccion texto="Sistema" />
+    <div className="space-y-1.5">{renderMenu(itemsSistemaVisibles)}</div>
+  </section>
+)}
       </nav>
 
       <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3">
