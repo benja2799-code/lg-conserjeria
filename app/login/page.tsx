@@ -11,17 +11,53 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [cargando, setCargando] = useState(false);
 
+  const limpiarRol = (rol: string | null | undefined) => {
+    return String(rol || "CONSERJE")
+      .trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  };
+
+  const normalizarRol = (rol: string | null | undefined) => {
+    const rolLimpio = limpiarRol(rol);
+
+    if (
+      rolLimpio === "ADMIN" ||
+      rolLimpio === "ADMINISTRADOR" ||
+      rolLimpio === "ADMINISTRACION" ||
+      rolLimpio === "ADMINISTRADOR(A)"
+    ) {
+      return "ADMINISTRADOR";
+    }
+
+    if (rolLimpio === "SUPERVISOR" || rolLimpio === "SUPERVISORA") {
+      return "SUPERVISOR";
+    }
+
+    if (
+      rolLimpio === "CONSERJE" ||
+      rolLimpio === "PORTERO" ||
+      rolLimpio === "GUARDIA" ||
+      rolLimpio === "OPERADOR"
+    ) {
+      return "CONSERJE";
+    }
+
+    return "CONSERJE";
+  };
+
   const iniciarSesion = async () => {
     if (!email.trim() || !password.trim()) {
-      alert("Debes ingresar correo y contraseña");
+      alert("Debes ingresar correo y contraseña.");
       return;
     }
 
     setCargando(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: email.trim(),
+      password: password.trim(),
     });
 
     if (error) {
@@ -59,17 +95,28 @@ export default function LoginPage() {
       return;
     }
 
-    localStorage.setItem(
-      "usuarioSistema",
-      JSON.stringify({
-        id: perfil.id,
-        nombre: perfil.nombre,
-        rol: perfil.rol,
-        email: email,
-      })
-    );
+    const rolNormalizado = normalizarRol(perfil.rol);
+    const nombreUsuario = perfil.nombre || email.trim();
+
+    const usuarioGuardado = {
+      id: perfil.id,
+      nombre: nombreUsuario,
+      email: email.trim(),
+      rol: rolNormalizado,
+    };
+
+    localStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
+    localStorage.setItem("usuarioSistema", JSON.stringify(usuarioGuardado));
+    localStorage.setItem("rol", rolNormalizado);
+
+    sessionStorage.setItem("usuario", JSON.stringify(usuarioGuardado));
+    sessionStorage.setItem("usuarioSistema", JSON.stringify(usuarioGuardado));
+    sessionStorage.setItem("rol", rolNormalizado);
+
+    console.log("USUARIO GUARDADO LOGIN:", usuarioGuardado);
 
     router.push("/");
+    router.refresh();
   };
 
   return (
@@ -79,9 +126,12 @@ export default function LoginPage() {
           <div className="mb-8 text-center">
             <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-white shadow-lg ring-4 ring-[#0B1F3A]/10">
               <img
-                src="/logo_LG.png"
+                src="/logo_LOGO.png"
                 alt="Logo LG"
                 className="h-full w-full object-contain p-2"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
             </div>
 
@@ -124,13 +174,19 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="********"
                 className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-[#D9A520] focus:ring-4 focus:ring-[#D9A520]/10"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    iniciarSesion();
+                  }
+                }}
               />
             </div>
 
             <button
+              type="button"
               onClick={iniciarSesion}
               disabled={cargando}
-              className="w-full rounded-xl bg-[#0B1F3A] px-5 py-3 font-bold text-white shadow-md transition hover:bg-[#163B73] disabled:opacity-60"
+              className="w-full rounded-xl bg-[#0B1F3A] px-5 py-3 font-bold text-white shadow-md transition hover:bg-[#163B73] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {cargando ? "Ingresando..." : "Ingresar al sistema"}
             </button>

@@ -116,80 +116,146 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-    try {
-      const posiblesKeys = [
-        "usuario",
-        "usuarioActivo",
-        "user",
-        "currentUser",
-        "authUser",
-        "sesionUsuario",
-        "sessionUser",
-        "loginUser",
-      ];
+  try {
+    const posiblesKeys = [
+      "usuario",
+      "usuarioActivo",
+      "user",
+      "currentUser",
+      "authUser",
+      "sesionUsuario",
+      "sessionUser",
+      "loginUser",
+      "rol",
+      "role",
+    ];
 
-      let usuarioEncontrado: UsuarioLocal | null = null;
+    const limpiarTexto = (valor: any) => {
+      return String(valor || "")
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    };
 
-      for (const key of posiblesKeys) {
-        const valor = localStorage.getItem(key);
+    const normalizarRolDetectado = (valor: any) => {
+      const rol = limpiarTexto(valor);
 
-        if (!valor) continue;
+      if (
+        rol.includes("ADMIN") ||
+        rol.includes("ADMINISTRADOR") ||
+        rol.includes("ADMINISTRACION")
+      ) {
+        return "ADMINISTRADOR";
+      }
 
-        try {
-          const parseado = JSON.parse(valor);
+      if (rol.includes("SUPERVISOR")) {
+        return "SUPERVISOR";
+      }
 
-          if (
-            parseado?.rol ||
-            parseado?.role ||
-            parseado?.tipo ||
-            parseado?.tipo_usuario ||
-            parseado?.perfil ||
-            parseado?.nombre ||
-            parseado?.name ||
-            parseado?.email
-          ) {
-            usuarioEncontrado = parseado;
-            break;
-          }
-        } catch {
-          // Ignora valores que no sean JSON
+      if (
+        rol.includes("CONSERJE") ||
+        rol.includes("PORTERO") ||
+        rol.includes("GUARDIA") ||
+        rol.includes("OPERADOR")
+      ) {
+        return "CONSERJE";
+      }
+
+      return "";
+    };
+
+    const buscarValor = (objeto: any, campos: string[]): string | null => {
+      if (!objeto || typeof objeto !== "object") return null;
+
+      for (const campo of campos) {
+        if (objeto[campo]) return String(objeto[campo]);
+      }
+
+      for (const key of Object.keys(objeto)) {
+        if (typeof objeto[key] === "object") {
+          const encontrado = buscarValor(objeto[key], campos);
+          if (encontrado) return encontrado;
         }
       }
 
-      if (usuarioEncontrado) {
-        const rolDetectado =
-          usuarioEncontrado.rol ||
-          usuarioEncontrado.role ||
-          usuarioEncontrado.tipo ||
-          usuarioEncontrado.tipo_usuario ||
-          usuarioEncontrado.perfil ||
-          "CONSERJE";
+      return null;
+    };
 
-        const nombreDetectado =
-          usuarioEncontrado.nombre ||
-          usuarioEncontrado.name ||
-          usuarioEncontrado.email ||
-          "Usuario";
+    let usuarioFinal: UsuarioLocal | null = null;
 
-        setUsuario({
-          nombre: nombreDetectado,
-          rol: String(rolDetectado).toUpperCase(),
-        });
-      } else {
-        setUsuario({
-          nombre: "Usuario",
-          rol: "CONSERJE",
-        });
+    for (const key of posiblesKeys) {
+      const valorLocal = localStorage.getItem(key);
+      const valorSession = sessionStorage.getItem(key);
+      const valor = valorLocal || valorSession;
+
+      if (!valor) continue;
+
+      try {
+        const parseado = JSON.parse(valor);
+
+        const rolEncontrado = buscarValor(parseado, [
+          "rol",
+          "role",
+          "tipo",
+          "tipo_usuario",
+          "tipoUsuario",
+          "perfil",
+          "cargo",
+        ]);
+
+        const nombreEncontrado = buscarValor(parseado, [
+          "nombre",
+          "name",
+          "email",
+          "usuario",
+          "username",
+        ]);
+
+        const rolNormalizado = normalizarRolDetectado(rolEncontrado);
+
+        if (rolNormalizado || nombreEncontrado) {
+          usuarioFinal = {
+            nombre: nombreEncontrado || "Usuario",
+            rol: rolNormalizado || "CONSERJE",
+          };
+
+          break;
+        }
+      } catch {
+        const rolNormalizado = normalizarRolDetectado(valor);
+
+        if (rolNormalizado) {
+          usuarioFinal = {
+            nombre: "Usuario",
+            rol: rolNormalizado,
+          };
+
+          break;
+        }
       }
-    } catch (error) {
-      console.error("Error al leer usuario local:", error);
+    }
 
+    if (usuarioFinal) {
+      setUsuario(usuarioFinal);
+      console.log("USUARIO DETECTADO SIDEBAR:", usuarioFinal);
+    } else {
       setUsuario({
         nombre: "Usuario",
         rol: "CONSERJE",
       });
+
+      console.log("NO SE DETECTÓ ROL, SE ASIGNA CONSERJE");
     }
-  }, []);
+  } catch (error) {
+    console.error("Error al leer usuario local:", error);
+
+    setUsuario({
+      nombre: "Usuario",
+      rol: "CONSERJE",
+    });
+  }
+}, []);
 
   const rolNormalizado = useMemo(() => {
     const rol = String(usuario.rol || "CONSERJE").toUpperCase();

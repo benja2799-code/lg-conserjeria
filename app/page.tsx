@@ -600,12 +600,7 @@ export default function Home() {
                   </p>
                 </div>
 
-                <Link
-                  href="/configuracion"
-                  className="w-fit rounded-xl border border-slate-200 bg-[#F8FAFC] px-4 py-3 text-sm font-bold text-[#0B1F3A] transition hover:bg-slate-100"
-                >
-                  Configurar sistema →
-                </Link>
+                
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
