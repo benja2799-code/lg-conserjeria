@@ -126,7 +126,7 @@ export default function LoginPage() {
           <div className="mb-8 text-center">
             <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-white shadow-lg ring-4 ring-[#0B1F3A]/10">
               <img
-                src="/logo_LOGO.png"
+                src="/logo_LG.png"
                 alt="Logo LG"
                 className="h-full w-full object-contain p-2"
                 onError={(e) => {

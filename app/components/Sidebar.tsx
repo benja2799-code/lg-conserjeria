@@ -277,7 +277,7 @@ setUsuarioCargado(true);
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-md">
             {!logoError ? (
               <Image
-                src="/logo_LOGO.png"
+                src="/logo_LG.png"
                 alt="Logo LG"
                 width={48}
                 height={48}

@@ -273,7 +273,7 @@ export default function RegistroGeneralPage() {
 
           <div className="min-w-0 flex-1 overflow-x-hidden p-8">
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-[#D9A520]">
                   Auditoría del sistema
                 </p>
@@ -328,7 +328,7 @@ export default function RegistroGeneralPage() {
 
             <section className="mb-8 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
               <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-                <div>
+                <div className="min-w-0">
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0B1F3A] text-white shadow-sm">
                     <PdfIcon />
                   </div>
@@ -357,7 +357,7 @@ export default function RegistroGeneralPage() {
 
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-xl font-black text-[#0B1F3A]">
                     Vista previa
                   </h2>
@@ -415,13 +415,17 @@ export default function RegistroGeneralPage() {
                           </td>
 
                           <td className="px-4 py-4 align-top">
-                            <span className="inline-flex rounded-full bg-[#F1F5F9] px-3 py-1 text-[11px] font-black text-[#0B1F3A]">
-                              {registro.modulo || "-"}
+                            <span className="inline-flex max-w-full rounded-full bg-[#F1F5F9] px-3 py-1 text-[11px] font-black text-[#0B1F3A]">
+                              <span className="truncate">
+                                {registro.modulo || "-"}
+                              </span>
                             </span>
                           </td>
 
                           <td className="px-4 py-4 align-top text-xs font-bold text-slate-600">
-                            {registro.accion || "-"}
+                            <p className="break-words">
+                              {registro.accion || "-"}
+                            </p>
                           </td>
 
                           <td className="px-4 py-4 align-top">
@@ -431,7 +435,9 @@ export default function RegistroGeneralPage() {
                           </td>
 
                           <td className="px-4 py-4 align-top text-xs text-slate-500">
-                            {registro.usuario || "Administrador"}
+                            <p className="truncate">
+                              {registro.usuario || "Administrador"}
+                            </p>
                           </td>
                         </tr>
                       ))
@@ -474,24 +480,26 @@ function MiniCard({
 }) {
   return (
     <div
-      className={`rounded-3xl border p-5 shadow-sm ${
+      className={`min-w-0 overflow-hidden rounded-3xl border p-5 shadow-sm ${
         destacado
           ? "border-[#0B1F3A] bg-[#0B1F3A] text-white"
           : "border-slate-200 bg-white text-[#0B1F3A]"
       }`}
     >
       <p
-        className={`text-[11px] font-black uppercase tracking-[0.22em] ${
+        className={`truncate text-[11px] font-black uppercase tracking-[0.22em] ${
           destacado ? "text-[#D9A520]" : "text-slate-400"
         }`}
       >
         {titulo}
       </p>
 
-      <p className="mt-3 text-3xl font-black">{valor}</p>
+      <p className="mt-3 max-w-full truncate text-2xl font-black leading-tight">
+        {valor}
+      </p>
 
       <p
-        className={`mt-1 text-xs ${
+        className={`mt-1 max-w-full truncate text-xs ${
           destacado ? "text-slate-300" : "text-slate-500"
         }`}
       >
